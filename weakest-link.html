@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Weakest Link</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #080808;
+            --card: #141414;
+            --card2: #1c1c1c;
+            --gold: #FFD700;
+            --gold2: #FFA500;
+            --gold-dim: #4a3a00;
+            --red: #CC2200;
+            --red-dim: #3a0800;
+            --green: #00BB55;
+            --blue: #2288FF;
+            --purple: #9933FF;
+            --text: #FFFFFF;
+            --dim: #888888;
+            --border: #2a2a2a;
+        }
+
+        body {
+            background-image: url(C:\Users\aidan\Projects\TheWeakestLink.jpg) no-repeat center center fixed;
+            color: var(--text);
+            font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 20px 16px 80px;
+        }
+
+        /* ── Typography ── */
+        h1 {
+            font-size: clamp(1.6em, 5vw, 2.6em);
+            color: var(--gold);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 0 0 30px rgba(255,215,0,0.4);
+        }
+        h2 { font-size: 1.2em; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px; }
+        h3 { font-size: 0.82em; color: var(--dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+
+        .subtitle {
+            text-align: center;
+            color: var(--dim);
+            font-family: Arial, sans-serif;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 4px 0 24px;
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 11px 22px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Arial Black', Arial, sans-serif;
+            font-size: 0.85em;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: filter 0.12s, transform 0.08s;
+            white-space: nowrap;
+            line-height: 1.3;
+            text-align: center;
+        }
+        .btn:hover:not(:disabled) { filter: brightness(1.18); }
+        .btn:active:not(:disabled) { filter: brightness(0.88); transform: scale(0.97); }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .btn-gold   { background: var(--gold);   color: #000; }
+        .btn-red    { background: var(--red);    color: #fff; }
+        .btn-green  { background: var(--green);  color: #000; }
+        .btn-blue   { background: var(--blue);   color: #fff; }
+        .btn-purple { background: var(--purple); color: #fff; }
+        .btn-grey   { background: #3a3a3a;       color: #fff; }
+        .btn-dark   { background: #1e1e1e; border: 1px solid #3a3a3a; color: var(--dim); }
+        .btn-outline { background: transparent; border: 2px solid var(--gold); color: var(--gold); }
+
+        .btn-lg   { padding: 15px 30px; font-size: 1em; }
+        .btn-sm   { padding: 7px 14px;  font-size: 0.76em; }
+        .btn-full { width: 100%; }
+
+        /* ── Forms ── */
+        label {
+            display: block;
+            color: var(--dim);
+            font-size: 0.76em;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 5px;
+            font-family: Arial, sans-serif;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            background: #202020;
+            border: 1px solid #3a3a3a;
+            border-radius: 5px;
+            color: var(--text);
+            font-family: Arial, sans-serif;
+            font-size: 0.95em;
+            padding: 9px 11px;
+            transition: border-color 0.15s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--gold); }
+        .form-group { margin-bottom: 14px; }
+
+        /* ── Layout ── */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .flex-center  { display: flex; align-items: center; justify-content: center; }
+        .flex-between { display: flex; align-items: center; justify-content: space-between; }
+        .gap-8  { gap: 8px; }
+        .gap-10 { gap: 10px; }
+        .gap-12 { gap: 12px; }
+        .wrap   { flex-wrap: wrap; }
+
+        @media(max-width:560px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            h1 { letter-spacing: 2px; }
+        }
+
+        /* ── Stats ── */
+        .stat { text-align: center; }
+        .stat-value { font-size: 1.7em; font-weight: 900; color: var(--gold); line-height: 1.1; }
+        .stat-value.sm { font-size: 1.2em; }
+        .stat-label { font-size: 0.68em; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; font-family: Arial, sans-serif; }
+
+        /* ── Timers ── */
+        .timer-display {
+            font-size: clamp(3em, 10vw, 5.5em);
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            text-align: center;
+            letter-spacing: 6px;
+            color: var(--gold);
+            transition: color 0.5s;
+            line-height: 1;
+        }
+        .timer-display.warning { color: var(--gold2); }
+        .timer-display.danger  { color: var(--red); animation: blink 0.6s infinite alternate; }
+
+        .vote-timer {
+            font-size: clamp(2em, 6vw, 3.5em);
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            text-align: center;
+            letter-spacing: 4px;
+            color: var(--red);
+            line-height: 1;
+        }
+        .vote-timer.expired { opacity: 0.4; }
+
+        @keyframes blink { from { opacity: 1; } to { opacity: 0.5; } }
+
+        /* ── Progress bars ── */
+        .progress-bar { height: 5px; background: #252525; border-radius: 3px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; background: var(--gold); border-radius: 3px; transition: width 0.9s linear, background 0.5s; }
+        .progress-fill.warning { background: var(--gold2); }
+        .progress-fill.danger  { background: var(--red); }
+
+        /* ── Chain ── */
+        .chain-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            padding: 8px 0 4px;
+            overflow-x: auto;
+        }
+        .chain-node {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.58em;
+            font-weight: 900;
+            flex-shrink: 0;
+            transition: all 0.25s;
+        }
+        .chain-node.achieved {
+            background: var(--gold);
+            color: #000;
+            box-shadow: 0 0 12px rgba(255,215,0,0.5);
+        }
+        .chain-node.achieved.double { background: var(--purple); box-shadow: 0 0 14px rgba(153,51,255,0.6); color: #fff; }
+        .chain-node.next {
+            background: var(--gold-dim);
+            border: 2px solid var(--gold);
+            color: var(--gold);
+            box-shadow: 0 0 8px rgba(255,215,0,0.25);
+        }
+        .chain-node.next.double { background: #1e0033; border-color: var(--purple); color: var(--purple); }
+        .chain-node.inactive { background: #1e1e1e; border: 2px solid #2e2e2e; color: #444; }
+        .chain-connector { width: 14px; height: 3px; background: #2e2e2e; flex-shrink: 0; transition: background 0.25s; }
+        .chain-connector.achieved { background: var(--gold); }
+        .chain-connector.achieved.double { background: var(--purple); }
+
+        /* ── Contestant cards ── */
+        .contestant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+            gap: 10px;
+        }
+        .c-card {
+            background: #1c1c1c;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .c-card:hover { border-color: #555; }
+        .c-card.current { border-color: var(--gold); background: #1d1500; }
+        .c-card.vote-selected { border-color: var(--red); background: var(--red-dim); }
+        .c-name { font-size: 0.82em; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; word-break: break-word; }
+        .c-stats { font-size: 0.7em; color: var(--dim); font-family: Arial, sans-serif; line-height: 1.6; }
+
+        /* ── Tables ── */
+        table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }
+        th { background: #1a1a1a; color: var(--dim); font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 0.86em; }
+        tr:last-child td { border-bottom: none; }
+        .row-strong { background: rgba(255,215,0,0.06); }
+        .row-weak   { background: rgba(204,34,0,0.07); }
+
+        /* ── Badges ── */
+        .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 0.66em; font-weight: 900; text-transform: uppercase; letter-spacing: 0.8px; vertical-align: middle; }
+        .badge-gold   { background: var(--gold);   color: #000; }
+        .badge-red    { background: var(--red);    color: #fff; }
+        .badge-purple { background: var(--purple); color: #fff; }
+
+        /* ── Round log ── */
+        .log-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--border); font-family: Arial, sans-serif; font-size: 0.82em; gap: 10px; }
+        .log-row:last-child { border-bottom: none; }
+
+        /* ── Action buttons ── */
+        .action-area { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .action-btn {
+            flex: 1; min-width: 80px; max-width: 160px;
+            padding: 16px 10px; font-size: 1em;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .action-btn .sub { font-size: 0.7em; opacity: 0.8; font-weight: 400; font-family: Arial, sans-serif; }
+
+        /* ── Divider ── */
+        .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+        /* ── Double round banner ── */
+        .double-banner {
+            background: linear-gradient(135deg, #1a0033, #0d0022);
+            border: 1px solid var(--purple);
+            border-radius: 8px;
+            padding: 12px 18px;
+            margin-bottom: 14px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(153,51,255,0.2);
+        }
+        .double-banner .label { font-size: 0.7em; letter-spacing: 3px; color: var(--purple); text-transform: uppercase; margin-bottom: 3px; }
+        .double-banner .title { font-size: 1.2em; color: #fff; letter-spacing: 2px; font-weight: 900; }
+
+        /* ── Collapsible ── */
+        .collapse-header {
+            display: flex; align-items: center; justify-content: space-between;
+            cursor: pointer; user-select: none;
+            padding: 4px 0;
+        }
+        .collapse-header:hover h2 { color: var(--text); }
+        .collapse-arrow { font-size: 1.1em; color: var(--dim); transition: transform 0.2s; }
+        .collapse-arrow.open { transform: rotate(180deg); }
+        .collapse-body { overflow: hidden; transition: max-height 0.3s ease; }
+
+        /* ── Dramatic screens ── */
+        .drama-screen { text-align: center; padding: 30px 16px; }
+        .drama-name {
+            font-size: clamp(2em, 7vw, 3.8em);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin: 18px 0 10px;
+        }
+        .drama-name.red  { color: var(--red);  text-shadow: 0 0 40px rgba(204,34,0,0.5); }
+        .drama-name.gold { color: var(--gold); text-shadow: 0 0 40px rgba(255,215,0,0.5); }
+        .drama-sub { font-size: 1em; color: var(--dim); letter-spacing: 3px; text-transform: uppercase; font-style: italic; margin-bottom: 24px; }
+
+        /* ── H2H ── */
+        .h2h-split { display: flex; gap: 16px; margin-bottom: 16px; }
+        .h2h-player {
+            flex: 1; text-align: center; padding: 20px 12px;
+            background: #1c1c1c; border: 2px solid var(--border); border-radius: 8px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .h2h-player.active { border-color: var(--gold); background: #1d1500; }
+        .h2h-score { font-size: 4em; color: var(--gold); font-weight: 900; line-height: 1; margin: 8px 0; }
+        .h2h-name  { font-size: 1em; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
+        .h2h-answered { font-size: 0.7em; color: var(--dim); font-family: Arial, sans-serif; margin-top: 6px; }
+
+        .sd-badge {
+            display: inline-block;
+            background: var(--red); color: #fff;
+            padding: 5px 18px; border-radius: 20px;
+            font-size: 0.82em; text-transform: uppercase; letter-spacing: 2px;
+            animation: blink 0.8s infinite alternate;
+            margin-bottom: 14px;
+        }
+
+        /* ── Name inputs ── */
+        .name-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        @media(max-width:480px) { .name-grid { grid-template-columns: 1fr 1fr; } }
+
+        /* ── Page title ── */
+        .page-title {
+            display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 4px;
+        }
+        .title-bar { height: 3px; background: var(--gold); flex: 1; max-width: 60px; opacity: 0.7; border-radius: 2px; }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed; bottom: 28px; left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--card); border: 1px solid var(--gold);
+            color: var(--text); padding: 10px 22px;
+            border-radius: 8px; font-size: 0.85em;
+            transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: none; z-index: 9999; white-space: nowrap;
+            font-family: Arial, sans-serif;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ── View toggle ── */
+        #viewToggle {
+            position: fixed;
+            bottom: 22px; right: 18px;
+            z-index: 200;
+            background: rgba(20,20,20,0.95);
+            border: 1px solid #3a3a3a;
+            color: var(--dim);
+            padding: 9px 16px;
+            border-radius: 30px;
+            font-family: 'Arial Black', Arial, sans-serif;
+            font-size: 0.7em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: border-color 0.2s, color 0.2s;
+            backdrop-filter: blur(4px);
+        }
+        #viewToggle:hover { border-color: var(--gold); color: var(--gold); }
+        #viewToggle.display-active { border-color: var(--blue); color: var(--blue); }
+
+        /* ── Display view ── */
+        .display-view {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 80vh; text-align: center;
+            padding: 20px 16px;
+        }
+        .display-timer {
+            font-size: clamp(5em, 18vw, 10em);
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            letter-spacing: 8px;
+            color: var(--gold);
+            line-height: 1;
+            transition: color 0.5s;
+        }
+        .display-timer.warning { color: var(--gold2); }
+        .display-timer.danger  { color: var(--red); animation: blink 0.6s infinite alternate; }
+        .display-name {
+            font-size: clamp(2em, 7vw, 4em);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: var(--gold);
+            margin: 16px 0 6px;
+        }
+        .display-label {
+            font-size: 0.82em;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-family: Arial, sans-serif;
+        }
+        .display-money {
+            font-size: clamp(1.6em, 5vw, 2.8em);
+            font-weight: 900;
+            color: var(--green);
+        }
+
+        /* ── Helpers ── */
+        .text-gold   { color: var(--gold); }
+        .text-red    { color: var(--red); }
+        .text-green  { color: var(--green); }
+        .text-purple { color: var(--purple); }
+        .text-dim    { color: var(--dim); }
+        .text-center { text-align: center; }
+        .mb-4  { margin-bottom: 4px; }
+        .mb-8  { margin-bottom: 8px; }
+        .mb-14 { margin-bottom: 14px; }
+        .mb-20 { margin-bottom: 20px; }
+        .mb-24 { margin-bottom: 24px; }
+        .mt-8  { margin-top: 8px; }
+        .mt-14 { margin-top: 14px; }
+        .mt-20 { margin-top: 20px; }
+        small  { font-family: Arial, sans-serif; font-size: 0.78em; color: var(--dim); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+
+const DEFAULT_CHAIN = [1000, 2000, 3000, 4000, 5000, 7500, 10000, 25000, 50000];
+
+let G = {
+    phase: 'setup',   // setup | playing | roundEnd | voting | eliminated | h2h | winner
+    viewMode: 'manage', // 'manage' | 'display'
+    settings: {
+        names: ['Alice', 'Bob', 'Carol', 'David', 'Emily', 'Frank'],
+        numPlayers: 6,
+        roundTime: 180,
+        chainValues: [...DEFAULT_CHAIN],
+        h2hQuestions: 5,
+    },
+
+    totalRounds: 0,
+    round: 0,
+    contestants: [],      // [{name, correct, wrong, banked, bankCount}]
+    eliminated: [],       // [{name, round, reason}]
+    curIdx: 0,
+    startIdx: 0,
+
+    chain: 0,
+    roundTotal: 0,
+    gameTotal: 0,
+
+    doubleRound: false,   // true = penultimate round (2 players, values ×2)
+    actionHistory: [],    // undo stack [{chain, roundTotal, curIdx, contestants}]
+
+    timeRemaining: 0,
+    timerRunning: false,
+    timerStarted: false,
+    _interval: null,
+
+    voteTimer: 0,
+    _voteInterval: null,
+
+    statsExpanded: false, // collapse state for round-end stats section
+
+    roundHistory: [],     // [{round, banked, eliminated, penultimate}]
+    pendingVote: null,
+
+    h2h: { scores: [0, 0], answered: [0, 0], curPlayer: 0, sudden: false },
+};
+
+// ═══════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════
+
+function fmt(n) {
+    if (n === 0) return '£0';
+    if (n >= 1_000_000) {
+        const v = n / 1_000_000;
+        return '£' + (v % 1 === 0 ? v : v.toFixed(2)) + 'm';
+    }
+    return '£' + n.toLocaleString('en-GB');
+}
+
+function fmtTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ':' + String(sec).padStart(2, '0');
+}
+
+let _toastTimer = null;
+function toast(msg, ms = 2200) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function chainValue() {
+    if (G.chain === 0) return 0;
+    return G.settings.chainValues[G.chain - 1] ?? 0;
+}
+
+function nextChainValue() {
+    if (G.chain >= G.settings.chainValues.length) return null;
+    return G.settings.chainValues[G.chain];
+}
+
+function scoreContestants(list) {
+    return list.map(c => {
+        const total = c.correct + c.wrong;
+        const rate  = total === 0 ? 0 : c.correct / total;
+        const maxV  = G.settings.chainValues[G.settings.chainValues.length - 1] || 50000;
+        const bankScore = maxV > 0 ? c.banked / maxV : 0;
+        return { ...c, rate, score: rate * 0.65 + bankScore * 0.35 };
+    }).sort((a, b) => b.score - a.score);
+}
+
+function strongest(list) { const s = scoreContestants(list); return s.length ? s[0].name : null; }
+function weakest(list)   { const s = scoreContestants(list); return s.length ? s[s.length - 1].name : null; }
+
+// ═══════════════════════════════════════════════════════════
+// TIMERS
+// ═══════════════════════════════════════════════════════════
+
+function startTimer() {
+    if (G.timerRunning) return;
+    G.timerRunning = true;
+    G.timerStarted = true;
+    G._interval = setInterval(() => {
+        G.timeRemaining--;
+        if (G.timeRemaining <= 0) {
+            G.timeRemaining = 0;
+            clearInterval(G._interval);
+            G.timerRunning = false;
+            onTimeUp();
+        } else {
+            render();
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    if (!G.timerRunning) return;
+    clearInterval(G._interval);
+    G.timerRunning = false;
+    render();
+}
+
+function startVoteTimer() {
+    G.voteTimer = 25;
+    clearInterval(G._voteInterval);
+    G._voteInterval = setInterval(() => {
+        G.voteTimer--;
+        if (G.voteTimer <= 0) {
+            clearInterval(G._voteInterval);
+            G.voteTimer = 0;
+        }
+        render();
+    }, 1000);
+}
+
+function clearVoteTimer() {
+    clearInterval(G._voteInterval);
+    G._voteInterval = null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// UNDO
+// ═══════════════════════════════════════════════════════════
+
+function pushHistory() {
+    G.actionHistory.push({
+        chain: G.chain,
+        roundTotal: G.roundTotal,
+        curIdx: G.curIdx,
+        contestants: G.contestants.map(c => ({ ...c })),
+    });
+    if (G.actionHistory.length > 30) G.actionHistory.shift();
+}
+
+function doUndo() {
+    if (!G.actionHistory.length) { toast('Nothing to undo!'); return; }
+    const snap = G.actionHistory.pop();
+    G.chain = snap.chain;
+    G.roundTotal = snap.roundTotal;
+    G.curIdx = snap.curIdx;
+    G.contestants = snap.contestants;
+    toast('Last action undone.');
+    render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// GAME FLOW
+// ═══════════════════════════════════════════════════════════
+
+function startGame() {
+    clearInterval(G._interval);
+    clearVoteTimer();
+    const cfg   = G.settings;
+    const names = cfg.names.slice(0, cfg.numPlayers).map((n, i) => n.trim() || `Player ${i + 1}`);
+
+    G.round        = 1;
+    G.totalRounds  = cfg.numPlayers; // rounds = number of contestants
+    G.gameTotal    = 0;
+    G.eliminated   = [];
+    G.roundHistory = [];
+    G.startIdx     = 0;
+    G.contestants  = names.map(name => ({ name, correct: 0, wrong: 0, banked: 0, bankCount: 0 }));
+    G.viewMode     = 'manage';
+
+    beginRound();
+}
+
+function beginRound() {
+    G.chain          = 0;
+    G.roundTotal     = 0;
+    G.timeRemaining  = G.settings.roundTime;
+    G.timerRunning   = false;
+    G.timerStarted   = false;
+    G.pendingVote    = null;
+    G.actionHistory  = [];
+    G.statsExpanded  = false;
+    G.curIdx         = G.startIdx % G.contestants.length;
+
+    // Penultimate round: exactly 2 contestants remain, banking is doubled
+    G.doubleRound = G.contestants.length === 2;
+
+    G.contestants = G.contestants.map(c => ({ ...c, correct: 0, wrong: 0, banked: 0, bankCount: 0 }));
+    G.phase = 'playing';
+    render();
+}
+
+function onTimeUp() {
+    clearVoteTimer();
+    G.gameTotal += G.roundTotal;
+    G.roundHistory.push({
+        round: G.round,
+        banked: G.roundTotal,
+        eliminated: null,
+        penultimate: G.doubleRound,
+    });
+    G.chain = 0;
+
+    if (G.doubleRound) {
+        // Penultimate ended → go straight to H2H (no vote)
+        G.round++;
+        startH2H();
+    } else {
+        G.statsExpanded = false;
+        G.phase = 'roundEnd';
+        render();
+    }
+}
+
+function doEndRound() {
+    clearInterval(G._interval);
+    G._interval = null;
+    G.timerRunning = false;
+    onTimeUp();
+}
+
+function doBank() {
+    const base = chainValue();
+    if (base <= 0) { toast('Build the chain first — nothing to bank!'); return; }
+    const val = G.doubleRound ? base * 2 : base;
+    pushHistory();
+    const c = G.contestants[G.curIdx];
+    c.banked    += val;
+    c.bankCount += 1;
+    G.roundTotal += val;
+    G.chain = 0;
+    toast(c.name + ' banks ' + fmt(val) + (G.doubleRound ? ' (×2 bonus)!' : '!'));
+    render();
+}
+
+function doCorrect() {
+    pushHistory();
+    const c = G.contestants[G.curIdx];
+    c.correct++;
+    if (G.chain < G.settings.chainValues.length) G.chain++;
+    G.curIdx = (G.curIdx + 1) % G.contestants.length;
+    render();
+}
+
+function doWrong() {
+    pushHistory();
+    const c = G.contestants[G.curIdx];
+    c.wrong++;
+    G.chain = 0;
+    G.curIdx = (G.curIdx + 1) % G.contestants.length;
+    render();
+}
+
+function jumpToContestant(idx) {
+    G.curIdx = idx;
+    render();
+}
+
+function selectVote(name) {
+    G.pendingVote = name;
+    render();
+}
+
+function confirmElimination() {
+    if (!G.pendingVote) return;
+    clearVoteTimer();
+    const name = G.pendingVote;
+
+    G.eliminated.push({ name, round: G.round, reason: 'vote' });
+    const h = G.roundHistory.find(r => r.round === G.round);
+    if (h) h.eliminated = name;
+
+    const idx = G.contestants.findIndex(c => c.name === name);
+    G.contestants.splice(idx, 1);
+
+    const strongName = strongest(G.contestants);
+    const si = G.contestants.findIndex(c => c.name === strongName);
+    G.startIdx = si >= 0 ? si : 0;
+    if (G.curIdx >= G.contestants.length) G.curIdx = 0;
+
+    G.pendingVote = null;
+    G.phase = 'eliminated';
+    render();
+}
+
+function afterElimination() {
+    G.round++;
+    if (G.contestants.length === 1) {
+        G.phase = 'winner';
+        render();
+    } else {
+        beginRound();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HEAD TO HEAD
+// ═══════════════════════════════════════════════════════════
+
+function startH2H() {
+    const si = G.startIdx % G.contestants.length;
+    if (si === 1) G.contestants.reverse();
+    G.contestants = G.contestants.map(c => ({ ...c, correct: 0, wrong: 0, banked: 0, bankCount: 0 }));
+    G.h2h = { scores: [0, 0], answered: [0, 0], curPlayer: 0, sudden: false };
+    G.phase = 'h2h';
+    render();
+}
+
+function h2hAnswer(correct) {
+    const p   = G.h2h.curPlayer;
+    const qpp = G.settings.h2hQuestions;
+
+    if (correct) { G.h2h.scores[p]++; G.contestants[p].correct++; }
+    else { G.contestants[p].wrong++; }
+    G.h2h.answered[p]++;
+
+    if (G.h2h.sudden) {
+        if (!correct) { eliminateH2H(p); return; }
+        G.h2h.curPlayer = 1 - p;
+        render();
+        return;
+    }
+
+    const done0 = G.h2h.answered[0] >= qpp;
+    const done1 = G.h2h.answered[1] >= qpp;
+
+    if (done0 && done1) {
+        if (G.h2h.scores[0] > G.h2h.scores[1])      eliminateH2H(1);
+        else if (G.h2h.scores[1] > G.h2h.scores[0]) eliminateH2H(0);
+        else {
+            G.h2h.sudden = true;
+            G.h2h.curPlayer = 0;
+            toast('SUDDEN DEATH!', 3000);
+            render();
+        }
+        return;
+    }
+
+    const other = 1 - p;
+    G.h2h.curPlayer = (G.h2h.answered[other] < qpp) ? other : p;
+    render();
+}
+
+function eliminateH2H(loserIdx) {
+    const loser  = G.contestants[loserIdx];
+    const winner = G.contestants[1 - loserIdx];
+    G.eliminated.push({ name: loser.name, round: G.round, reason: 'h2h' });
+    G.contestants = [winner];
+    G.phase = 'winner';
+    render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════════════════
+
+function readSetupNames() {
+    for (let i = 0; i < 12; i++) {
+        const el = document.getElementById('n' + i);
+        if (el) G.settings.names[i] = el.value;
+    }
+}
+
+function changeNumPlayers(n) {
+    readSetupNames();
+    G.settings.numPlayers = n;
+    while (G.settings.names.length < n) G.settings.names.push('');
+    render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════════════════
+
+function pageTitle(small) {
+    const size = small ? 'style="font-size:clamp(1.2em,3vw,1.8em);letter-spacing:3px;"' : '';
+    return `
+        <div class="page-title mb-4">
+            <div class="title-bar"></div>
+            <h1 ${size}>The Weakest Link</h1>
+            <div class="title-bar"></div>
+        </div>
+        ${small ? '' : '<p class="subtitle">Game Show Management System</p>'}
+    `;
+}
+
+function renderChain(double) {
+    const vals = G.settings.chainValues;
+    let html = '<div class="chain-wrap">';
+    for (let i = 0; i < vals.length; i++) {
+        const pos = i + 1;
+        const achieved = pos <= G.chain;
+        const next     = pos === G.chain + 1;
+        let cls = achieved ? 'achieved' + (double ? ' double' : '') :
+                  next     ? 'next'     + (double ? ' double' : '') : 'inactive';
+        const v = vals[i];
+        const display = double ? (v * 2) : v;
+        let lbl = display >= 1_000_000 ? (display/1_000_000)+'m' : display >= 1000 ? (display/1000)+'k' : display;
+        if (i > 0) {
+            html += `<div class="chain-connector ${achieved ? 'achieved' + (double ? ' double' : '') : ''}"></div>`;
+        }
+        html += `<div class="chain-node ${cls}" title="${fmt(display)}">${lbl}</div>`;
+    }
+    html += '</div>';
+    return html;
+}
+
+function roundLabel() {
+    if (G.doubleRound) return `Penultimate Round (Round ${G.round} of ${G.totalRounds})`;
+    if (G.phase === 'h2h') return `Head to Head (Round ${G.round} of ${G.totalRounds})`;
+    return `Round ${G.round} of ${G.totalRounds}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VIEW TOGGLE BUTTON
+// ═══════════════════════════════════════════════════════════
+
+function viewToggleBtn() {
+    if (G.phase === 'setup') return '';
+    const isDisplay = G.viewMode === 'display';
+    return `
+        <button id="viewToggle" class="${isDisplay ? 'display-active' : ''}"
+                onclick="G.viewMode = G.viewMode==='manage'?'display':'manage'; render();">
+            ${isDisplay ? '⚙ Manage' : '📺 Display'}
+        </button>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — SETUP
+// ═══════════════════════════════════════════════════════════
+
+function renderSetup() {
+    const n     = G.settings.numPlayers;
+    const names = G.settings.names;
+    let nameInputs = '';
+    for (let i = 0; i < n; i++) {
+        nameInputs += `<div><input type="text" id="n${i}" placeholder="Player ${i+1}" value="${escHtml(names[i]||'')}" maxlength="18" style="text-align:center;"></div>`;
+    }
+    const numOptions = Array.from({length:11},(_,i)=>i+2)
+        .map(i=>`<option value="${i}" ${i===n?'selected':''}>${i}</option>`).join('');
+
+    return `
+        ${pageTitle()}
+        <div class="card">
+            <h2>Game Configuration</h2>
+            <div class="grid-2" style="margin-bottom:18px;">
+                <div class="form-group">
+                    <label>Number of Contestants</label>
+                    <select id="numPlayers">${numOptions}</select>
+                </div>
+                <div class="form-group">
+                    <label>Round Time (seconds)</label>
+                    <input type="number" id="roundTime" value="${G.settings.roundTime}" min="10" max="600" step="5">
+                </div>
+                <div class="form-group">
+                    <label>H2H Questions Per Player</label>
+                    <input type="number" id="h2hQ" value="${G.settings.h2hQuestions}" min="1" max="30">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Chain Values — comma-separated (£)</label>
+                <input type="text" id="chainVals" value="${G.settings.chainValues.join(', ')}">
+                <small style="display:block;margin-top:5px;">Up to 9 rungs. Values are doubled in the penultimate round.</small>
+            </div>
+            <h3 style="margin-top:18px;margin-bottom:10px;">Contestant Names</h3>
+            <div class="name-grid">${nameInputs}</div>
+            <button class="btn btn-gold btn-lg btn-full mt-20" id="btnStartGame">▶ Start Game</button>
+        </div>
+        <div class="card" style="border-color:#1e1e1e;">
+            <h3 style="margin-bottom:10px;">How It Works</h3>
+            <ul style="font-family:Arial,sans-serif;font-size:0.8em;color:var(--dim);line-height:2;padding-left:18px;">
+                <li>Total rounds = number of contestants (e.g. 6 players = 6 rounds).</li>
+                <li>The <strong style="color:var(--text)">penultimate round</strong> has the final 2 contestants with banking values doubled.</li>
+                <li>The <strong style="color:var(--text)">final round</strong> is always Head-to-Head.</li>
+                <li>Use <strong style="color:var(--text)">Undo</strong> to reverse the last answer or bank action.</li>
+                <li>Use <strong style="color:var(--text)">End Round</strong> to stop the timer early.</li>
+                <li>Toggle <strong style="color:var(--text)">Display View</strong> to show a clean screen to contestants.</li>
+                <li>The strongest link from each round starts the next round.</li>
+            </ul>
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — PLAYING
+// ═══════════════════════════════════════════════════════════
+
+function renderPlaying() {
+    return G.viewMode === 'display' ? renderPlayingDisplay() : renderPlayingManage();
+}
+
+function renderPlayingManage() {
+    const cur   = G.contestants[G.curIdx];
+    const base  = chainValue();
+    const cval  = G.doubleRound ? base * 2 : base;
+    const nbase = nextChainValue();
+    const nval  = G.doubleRound && nbase != null ? nbase * 2 : nbase;
+    const total = G.settings.roundTime;
+    const pct   = total > 0 ? G.timeRemaining / total : 1;
+    const timerCls = pct <= 0.2 ? 'danger' : pct <= 0.4 ? 'warning' : '';
+
+    return `
+        ${G.doubleRound ? `
+        <div class="double-banner">
+            <div class="label">Penultimate Round — Round ${G.round} of ${G.totalRounds}</div>
+            <div class="title">⚡ Double Banking Round</div>
+        </div>` : ''}
+
+        <!-- Stats bar -->
+        <div class="card" style="padding:12px 18px;margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px;">
+                <div class="stat"><div class="stat-value sm">${G.doubleRound ? 'Penultimate' : 'Round ' + G.round}</div><div class="stat-label">of ${G.totalRounds} Total</div></div>
+                <div class="stat"><div class="stat-value sm ${G.doubleRound?'text-purple':''}">${fmt(G.roundTotal)}</div><div class="stat-label">Round Banked</div></div>
+                <div class="stat"><div class="stat-value sm">${fmt(G.gameTotal)}</div><div class="stat-label">Game Total</div></div>
+                <div class="stat"><div class="stat-value sm">${G.contestants.length}</div><div class="stat-label">Contestants</div></div>
+            </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="card" style="text-align:center;">
+            <div class="timer-display ${timerCls}">${fmtTime(G.timeRemaining)}</div>
+            <div class="progress-bar"><div class="progress-fill ${timerCls}" style="width:${pct*100}%"></div></div>
+            <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                ${!G.timerStarted
+                    ? `<button class="btn btn-gold btn-lg" id="btnStart">▶ Start Round</button>`
+                    : G.timerRunning
+                        ? `<button class="btn btn-grey btn-sm" id="btnPause">⏸ Pause</button>`
+                        : `<button class="btn btn-gold btn-sm" id="btnResume">▶ Resume</button>`
+                }
+                ${G.timerStarted ? `<button class="btn btn-red btn-sm" id="btnEndRound">■ End Round</button>` : ''}
+            </div>
+        </div>
+
+        <!-- Chain -->
+        <div class="card">
+            <div class="flex-between mb-8">
+                <h3 style="margin-bottom:0;">Question Chain ${G.doubleRound ? '<span class="badge badge-purple" style="margin-left:6px;">×2</span>' : ''}</h3>
+                <div style="text-align:right;">
+                    <div style="font-size:1.5em;font-weight:900;color:${G.doubleRound?'var(--purple)':'var(--gold)'};">${cval > 0 ? fmt(cval) : '—'}</div>
+                    <div style="font-size:0.7em;color:var(--dim);">
+                        ${G.chain >= G.settings.chainValues.length ? '🔥 Maximum!' : nval != null ? 'Next: ' + fmt(nval) : ''}
+                    </div>
+                </div>
+            </div>
+            ${renderChain(G.doubleRound)}
+        </div>
+
+        <!-- Current contestant + actions -->
+        <div class="card" style="text-align:center;">
+            <div style="font-size:0.7em;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Now Answering</div>
+            <div style="font-size:2em;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:3px;margin-bottom:18px;">${cur ? escHtml(cur.name) : '—'}</div>
+            <div class="action-area">
+                <button class="btn btn-blue action-btn" id="btnBank" ${cval<=0?'disabled':''}>
+                    🏦 Bank
+                    <span class="sub">${cval > 0 ? fmt(cval) : '£0'}</span>
+                </button>
+                <button class="btn btn-green action-btn" id="btnCorrect">✓ Correct</button>
+                <button class="btn btn-red   action-btn" id="btnWrong">✗ Wrong</button>
+                <button class="btn btn-dark  action-btn btn-sm" id="btnUndo" ${!G.actionHistory.length?'disabled':''} style="flex:0;min-width:70px;max-width:90px;padding:10px 8px;font-size:0.72em;">
+                    ↩ Undo
+                </button>
+            </div>
+        </div>
+
+        <!-- Contestant list -->
+        <div class="card">
+            <div class="flex-between mb-8">
+                <h3 style="margin-bottom:0;">Contestants</h3>
+                <small>Click to jump</small>
+            </div>
+            <div class="contestant-grid">
+                ${G.contestants.map((c, i) => `
+                    <div class="c-card ${i===G.curIdx?'current':''}" data-jump="${i}">
+                        <div class="c-name" style="${i===G.curIdx?'color:var(--gold)':''}">${escHtml(c.name)}</div>
+                        <div class="c-stats">
+                            ✓ ${c.correct} &nbsp; ✗ ${c.wrong}
+                            ${c.bankCount > 0 ? `<br>${fmt(c.banked)} banked` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
+        ${renderRoundLog()}
+        ${viewToggleBtn()}
+    `;
+}
+
+function renderPlayingDisplay() {
+    const cur    = G.contestants[G.curIdx];
+    const base   = chainValue();
+    const cval   = G.doubleRound ? base * 2 : base;
+    const total  = G.settings.roundTime;
+    const pct    = total > 0 ? G.timeRemaining / total : 1;
+    const timerCls = pct <= 0.2 ? 'danger' : pct <= 0.4 ? 'warning' : '';
+
+    return `
+        <div class="display-view">
+            ${pageTitle(true)}
+            <div style="font-size:0.76em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">${roundLabel()}</div>
+
+            <div class="display-timer ${timerCls}">${fmtTime(G.timeRemaining)}</div>
+            <div class="progress-bar" style="width:min(400px,90vw);margin:12px auto;">
+                <div class="progress-fill ${timerCls}" style="width:${pct*100}%"></div>
+            </div>
+
+            <div style="margin:24px 0 8px;">
+                ${renderChain(G.doubleRound)}
+            </div>
+
+            <div class="display-label" style="margin-bottom:6px;">Now Answering</div>
+            <div class="display-name">${cur ? escHtml(cur.name) : '—'}</div>
+
+            ${cval > 0 ? `
+            <div class="display-label" style="margin-top:20px;margin-bottom:4px;">Chain Value</div>
+            <div style="font-size:clamp(1.8em,5vw,3em);font-weight:900;color:${G.doubleRound?'var(--purple)':'var(--gold)'};">${fmt(cval)}</div>
+            ` : ''}
+
+            <div style="display:flex;gap:40px;margin-top:24px;flex-wrap:wrap;justify-content:center;">
+                <div class="stat">
+                    <div class="stat-value" style="font-size:1.4em;">${fmt(G.roundTotal)}</div>
+                    <div class="stat-label">Round Banked</div>
+                </div>
+                <div class="stat">
+                    <div class="display-money" style="font-size:1.4em;">${fmt(G.gameTotal)}</div>
+                    <div class="stat-label">Prize Fund</div>
+                </div>
+            </div>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — ROUND END
+// ═══════════════════════════════════════════════════════════
+
+function renderRoundEnd() {
+    return G.viewMode === 'display' ? renderRoundEndDisplay() : renderRoundEndManage();
+}
+
+function renderRoundEndManage() {
+    const sorted = scoreContestants(G.contestants);
+    const strongN = sorted.length ? sorted[0].name : null;
+    const weakN   = sorted.length ? sorted[sorted.length-1].name : null;
+
+    return `
+        ${pageTitle(true)}
+
+        <div class="card" style="text-align:center;border-color:var(--gold-dim);">
+            <div style="font-size:1em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:8px;">Time's Up — Round ${G.round} of ${G.totalRounds}</div>
+            <hr class="divider">
+            <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;">
+                <div class="stat"><div class="stat-value">${fmt(G.roundTotal)}</div><div class="stat-label">Banked This Round</div></div>
+                <div class="stat"><div class="stat-value">${fmt(G.gameTotal)}</div><div class="stat-label">Total Prize Fund</div></div>
+            </div>
+        </div>
+
+        <!-- Strongest/Weakest -->
+        ${strongN ? `
+        <div class="card" style="border-color:var(--gold-dim);">
+            <div class="flex-between flex-wrap gap-12">
+                <div>
+                    <h3 style="margin-bottom:3px;">Strongest Link</h3>
+                    <div style="font-size:1.3em;font-weight:900;color:var(--gold);">${escHtml(strongN)}</div>
+                    <small>Starts Round ${G.round+1}</small>
+                </div>
+                <div style="text-align:right;">
+                    <h3 style="margin-bottom:3px;">Weakest Link</h3>
+                    <div style="font-size:1.3em;font-weight:900;color:var(--red);">${escHtml(weakN)}</div>
+                    <small>Statistical suggestion only</small>
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
+        <!-- Collapsible stats -->
+        <div class="card">
+            <div class="collapse-header" id="statsToggle">
+                <h2 style="margin-bottom:0;">Round ${G.round} Statistics</h2>
+                <span class="collapse-arrow ${G.statsExpanded?'open':''}">▾</span>
+            </div>
+            <div class="collapse-body" style="max-height:${G.statsExpanded?'600px':'0'};">
+                <div style="height:14px;"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Contestant</th><th>Correct</th><th>Wrong</th><th>Rate</th><th>Banked</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map((c,i) => {
+                            const total = c.correct + c.wrong;
+                            const rate  = total > 0 ? Math.round(c.correct/total*100)+'%' : '—';
+                            const rowCls = i===0 ? 'row-strong' : i===sorted.length-1&&sorted.length>1 ? 'row-weak' : '';
+                            return `
+                            <tr class="${rowCls}">
+                                <td><strong>${escHtml(c.name)}</strong>
+                                    ${i===0?' <span class="badge badge-gold">Strongest</span>':''}
+                                    ${i===sorted.length-1&&sorted.length>1?' <span class="badge badge-red">Weakest</span>':''}
+                                </td>
+                                <td class="text-green">${c.correct}</td>
+                                <td class="text-red">${c.wrong}</td>
+                                <td>${rate}</td>
+                                <td class="text-gold">${c.banked>0?fmt(c.banked):'—'}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="text-align:center;">
+            <button class="btn btn-red btn-lg" id="btnProceedVote">Vote: Who is the Weakest Link?</button>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+function renderRoundEndDisplay() {
+    return `
+        <div class="display-view">
+            ${pageTitle(true)}
+            <div style="font-size:1.3em;color:var(--dim);text-transform:uppercase;letter-spacing:4px;margin:20px 0 30px;">
+                Time's Up — Round ${G.round}
+            </div>
+            <div class="stat" style="margin-bottom:20px;">
+                <div class="stat-value" style="font-size:2.5em;">${fmt(G.roundTotal)}</div>
+                <div class="stat-label">Banked This Round</div>
+            </div>
+            <div class="stat">
+                <div class="display-money">${fmt(G.gameTotal)}</div>
+                <div class="stat-label">Total Prize Fund</div>
+            </div>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — VOTING
+// ═══════════════════════════════════════════════════════════
+
+function renderVoting() {
+    return G.viewMode === 'display' ? renderVotingDisplay() : renderVotingManage();
+}
+
+function renderVotingManage() {
+    const weakN   = weakest(G.contestants);
+    const expired = G.voteTimer === 0;
+
+    return `
+        ${pageTitle(true)}
+
+        <div class="card" style="text-align:center;border-color:var(--red);">
+            <div style="font-size:1.3em;text-transform:uppercase;letter-spacing:4px;color:var(--red);margin-bottom:6px;">Vote</div>
+            <div style="color:var(--dim);font-family:Arial,sans-serif;">Who is the weakest link?</div>
+        </div>
+
+        <!-- Vote timer -->
+        <div class="card" style="text-align:center;padding:14px;">
+            <div style="font-size:0.68em;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Voting Countdown</div>
+            <div class="vote-timer ${expired?'expired':''}">${G.voteTimer}s</div>
+            ${expired ? '<div style="font-size:0.76em;color:var(--dim);margin-top:6px;font-family:Arial,sans-serif;">Time up — confirm your vote below</div>' : ''}
+        </div>
+
+        ${weakN ? `
+        <div style="font-family:Arial,sans-serif;font-size:0.8em;color:var(--dim);text-align:center;margin-bottom:10px;">
+            Statistically: <strong style="color:var(--red);">${escHtml(weakN)}</strong>
+        </div>` : ''}
+
+        <div class="contestant-grid" style="margin-bottom:18px;">
+            ${G.contestants.map(c => `
+                <div class="c-card ${G.pendingVote===c.name?'vote-selected':''}" data-vote="${escAttr(c.name)}" style="padding:18px 10px;">
+                    <div class="c-name" style="${G.pendingVote===c.name?'color:var(--red)':''}">${escHtml(c.name)}</div>
+                    <div class="c-stats" style="margin-top:6px;">✓ ${c.correct} &nbsp; ✗ ${c.wrong}</div>
+                    ${G.pendingVote===c.name?'<div style="margin-top:6px;font-size:0.68em;color:var(--red);text-transform:uppercase;letter-spacing:1px;">Selected</div>':''}
+                </div>
+            `).join('')}
+        </div>
+
+        <div style="text-align:center;">
+            <button class="btn btn-red btn-lg" id="btnConfirmElim" ${!G.pendingVote?'disabled':''}>
+                Eliminate ${G.pendingVote ? escHtml(G.pendingVote) : '...'}
+            </button>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+function renderVotingDisplay() {
+    return `
+        <div class="display-view">
+            ${pageTitle(true)}
+            <div style="font-size:1.2em;color:var(--red);text-transform:uppercase;letter-spacing:5px;margin:20px 0 14px;">Vote</div>
+            <div class="vote-timer ${G.voteTimer===0?'expired':''}" style="margin-bottom:24px;">${G.voteTimer}s</div>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:600px;">
+                ${G.contestants.map(c => `
+                    <div style="background:#1c1c1c;border:2px solid var(--border);border-radius:8px;padding:16px 24px;font-size:1.1em;font-weight:900;text-transform:uppercase;letter-spacing:2px;">
+                        ${escHtml(c.name)}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — ELIMINATED
+// ═══════════════════════════════════════════════════════════
+
+function renderEliminated() {
+    const last = G.eliminated[G.eliminated.length - 1];
+    const rem  = G.contestants.length;
+    let nextLabel;
+    if (rem === 2)      nextLabel = `▶ Begin Penultimate Round (Round ${G.round+1})`;
+    else if (rem === 1) nextLabel = `▶ Proceed to Head to Head`;
+    else                nextLabel = `▶ Begin Round ${G.round + 1} of ${G.totalRounds}`;
+
+    return `
+        <div class="drama-screen">
+            <div style="font-size:0.76em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">
+                Round ${G.round} — Eliminated
+            </div>
+            <div class="drama-name red">${last ? escHtml(last.name) : ''}</div>
+            <div class="drama-sub">You are the weakest link... Goodbye!</div>
+
+            <div class="card" style="display:inline-block;min-width:260px;text-align:left;margin:0 auto 28px;">
+                <div style="display:flex;justify-content:space-around;gap:20px;">
+                    <div class="stat"><div class="stat-value">${fmt(G.gameTotal)}</div><div class="stat-label">Prize Fund</div></div>
+                    <div class="stat"><div class="stat-value">${rem}</div><div class="stat-label">Remaining</div></div>
+                </div>
+            </div>
+
+            <div>
+                <button class="btn btn-gold btn-lg" id="btnAfterElim">${nextLabel}</button>
+            </div>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — HEAD TO HEAD
+// ═══════════════════════════════════════════════════════════
+
+function renderH2H() {
+    return G.viewMode === 'display' ? renderH2HDisplay() : renderH2HManage();
+}
+
+function renderH2HManage() {
+    const h   = G.h2h;
+    const qpp = G.settings.h2hQuestions;
+    const p0  = G.contestants[0];
+    const p1  = G.contestants[1];
+    const rem0 = Math.max(0, qpp - h.answered[0]);
+    const rem1 = Math.max(0, qpp - h.answered[1]);
+
+    return `
+        ${pageTitle(true)}
+
+        <div class="card" style="text-align:center;border-color:var(--gold-dim);margin-bottom:14px;">
+            <div style="font-size:1.2em;text-transform:uppercase;letter-spacing:4px;color:var(--gold);">
+                Head to Head Final — Round ${G.round} of ${G.totalRounds}
+            </div>
+            <div style="color:var(--dim);font-family:Arial,sans-serif;font-size:0.8em;margin-top:5px;">
+                ${h.sudden ? 'Sudden Death — any wrong answer loses!' : `${qpp} questions each`}
+                &nbsp;·&nbsp; Prize fund: <strong style="color:var(--gold)">${fmt(G.gameTotal)}</strong>
+            </div>
+        </div>
+
+        ${h.sudden ? '<div class="text-center mb-14"><span class="sd-badge">⚡ Sudden Death</span></div>' : ''}
+
+        ${!h.sudden ? `
+        <div style="text-align:center;color:var(--dim);font-family:Arial,sans-serif;font-size:0.8em;margin-bottom:12px;">
+            Questions remaining — <strong style="color:var(--text)">${escHtml(p0.name)}</strong>: ${rem0}
+            &nbsp;|&nbsp;
+            <strong style="color:var(--text)">${escHtml(p1.name)}</strong>: ${rem1}
+        </div>
+        ` : ''}
+
+        <div class="h2h-split">
+            <div class="h2h-player ${h.curPlayer===0?'active':''}">
+                <div class="h2h-name">${escHtml(p0.name)}</div>
+                <div class="h2h-score">${h.scores[0]}</div>
+                <div class="h2h-answered">${h.answered[0]} answered</div>
+                ${h.curPlayer===0?'<div style="margin-top:8px;font-size:0.72em;color:var(--gold);text-transform:uppercase;letter-spacing:1px;">Now Answering</div>':''}
+            </div>
+            <div class="h2h-player ${h.curPlayer===1?'active':''}">
+                <div class="h2h-name">${escHtml(p1.name)}</div>
+                <div class="h2h-score">${h.scores[1]}</div>
+                <div class="h2h-answered">${h.answered[1]} answered</div>
+                ${h.curPlayer===1?'<div style="margin-top:8px;font-size:0.72em;color:var(--gold);text-transform:uppercase;letter-spacing:1px;">Now Answering</div>':''}
+            </div>
+        </div>
+
+        <div class="card" style="text-align:center;">
+            <div style="font-size:0.7em;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:5px;">Now Answering</div>
+            <div style="font-size:2em;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:3px;margin-bottom:18px;">
+                ${escHtml(G.contestants[h.curPlayer].name)}
+            </div>
+            <div class="action-area" style="justify-content:center;">
+                <button class="btn btn-green action-btn" id="btnH2HCorrect">✓ Correct</button>
+                <button class="btn btn-red   action-btn" id="btnH2HWrong">✗ Wrong</button>
+            </div>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+function renderH2HDisplay() {
+    const h  = G.h2h;
+    const p0 = G.contestants[0];
+    const p1 = G.contestants[1];
+
+    return `
+        <div class="display-view">
+            ${pageTitle(true)}
+            <div style="font-size:0.76em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:24px;">Head to Head Final</div>
+            ${h.sudden ? '<span class="sd-badge" style="margin-bottom:20px;">⚡ Sudden Death</span>' : ''}
+            <div class="h2h-split" style="width:min(460px,90vw);">
+                <div class="h2h-player ${h.curPlayer===0?'active':''}">
+                    <div class="h2h-name">${escHtml(p0.name)}</div>
+                    <div class="h2h-score">${h.scores[0]}</div>
+                </div>
+                <div class="h2h-player ${h.curPlayer===1?'active':''}">
+                    <div class="h2h-name">${escHtml(p1.name)}</div>
+                    <div class="h2h-score">${h.scores[1]}</div>
+                </div>
+            </div>
+            <div class="display-label" style="margin-top:16px;">Now Answering</div>
+            <div class="display-name">${escHtml(G.contestants[h.curPlayer].name)}</div>
+            <div class="stat" style="margin-top:24px;">
+                <div class="display-money">${fmt(G.gameTotal)}</div>
+                <div class="stat-label">Prize Fund</div>
+            </div>
+        </div>
+        ${viewToggleBtn()}
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — WINNER
+// ═══════════════════════════════════════════════════════════
+
+function renderWinner() {
+    const winner = G.contestants[0];
+    return `
+        <div class="drama-screen">
+            ${pageTitle()}
+            <div style="margin:10px 0 4px;font-size:0.82em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;">The Strongest Link</div>
+            <div class="drama-name gold">${winner ? escHtml(winner.name) : 'Winner'}</div>
+            <div class="drama-sub">You are the strongest link!</div>
+            <div style="font-size:0.8em;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Prize Fund</div>
+            <div style="font-size:2.8em;font-weight:900;color:var(--green);margin-bottom:30px;text-shadow:0 0 20px rgba(0,187,85,0.4);">${fmt(G.gameTotal)}</div>
+            <hr class="divider">
+            <div class="card" style="text-align:left;max-width:420px;margin:0 auto 24px;">
+                <h2 style="margin-bottom:14px;">Game Summary</h2>
+                ${G.roundHistory.map(h => `
+                    <div class="log-row">
+                        <span class="text-dim">Round ${h.round}${h.penultimate?' <span class="badge badge-purple">Penultimate</span>':''}</span>
+                        <span class="text-gold">${fmt(h.banked)}</span>
+                        <span class="text-red">${h.eliminated ? '✗ '+escHtml(h.eliminated) : h.penultimate ? '<span style="color:var(--dim)">No vote</span>' : ''}</span>
+                    </div>
+                `).join('')}
+                <div class="log-row" style="border-top:1px solid var(--gold-dim);margin-top:4px;">
+                    <strong>Total Prize</strong>
+                    <strong class="text-gold">${fmt(G.gameTotal)}</strong>
+                    <span></span>
+                </div>
+            </div>
+            ${G.eliminated.length ? `
+            <div style="font-size:0.8em;color:var(--dim);margin-bottom:8px;font-family:Arial,sans-serif;">Eliminations in order:</div>
+            ${G.eliminated.map(e => `
+                <div style="font-family:Arial,sans-serif;font-size:0.8em;color:var(--dim);margin-bottom:3px;">
+                    Round ${e.round}: <strong style="color:var(--text)">${escHtml(e.name)}</strong>
+                    ${e.reason==='h2h'?'<span class="badge badge-red" style="margin-left:4px;">H2H</span>':''}
+                </div>
+            `).join('')}
+            ` : ''}
+            <div style="margin-top:28px;">
+                <button class="btn btn-gold btn-lg" id="btnPlayAgain">↺ Play Again</button>
+            </div>
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — ROUND LOG (shared widget)
+// ═══════════════════════════════════════════════════════════
+
+function renderRoundLog() {
+    if (!G.roundHistory.length) return '';
+    return `
+        <div class="card" style="margin-top:0;">
+            <h3 style="margin-bottom:8px;">Round History</h3>
+            ${G.roundHistory.map(h => `
+                <div class="log-row">
+                    <span class="text-dim">Round ${h.round}${h.penultimate?' <span class="badge badge-purple" style="font-size:0.6em;">Penultimate</span>':''}</span>
+                    <span class="text-gold">${fmt(h.banked)}</span>
+                    <span class="text-red" style="font-family:Arial,sans-serif;">${h.eliminated?'✗ '+escHtml(h.eliminated):''}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SECURITY HELPERS
+// ═══════════════════════════════════════════════════════════
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+    return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN RENDER + WIRING
+// ═══════════════════════════════════════════════════════════
+
+function render() {
+    const app = document.getElementById('app');
+    switch (G.phase) {
+        case 'setup':      app.innerHTML = renderSetup();      break;
+        case 'playing':    app.innerHTML = renderPlaying();    break;
+        case 'roundEnd':   app.innerHTML = renderRoundEnd();   break;
+        case 'voting':     app.innerHTML = renderVoting();     break;
+        case 'eliminated': app.innerHTML = renderEliminated(); break;
+        case 'h2h':        app.innerHTML = renderH2H();        break;
+        case 'winner':     app.innerHTML = renderWinner();     break;
+    }
+    wire();
+}
+
+function wire() {
+    // Setup
+    on('numPlayers',   'change', e => changeNumPlayers(+e.target.value));
+    on('btnStartGame', 'click',  () => {
+        readSetupNames();
+        const rt        = +document.getElementById('roundTime')?.value || 180;
+        const h2hQ      = +document.getElementById('h2hQ')?.value || 5;
+        const rawChain  = document.getElementById('chainVals')?.value || '';
+        const chain     = rawChain.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v) && v > 0);
+        if (chain.length < 1) { alert('Please enter at least one chain value.'); return; }
+        if (G.settings.names.filter(n => n.trim()).length < 2) { alert('Please enter at least 2 contestant names.'); return; }
+        G.settings.roundTime    = rt;
+        G.settings.h2hQuestions = h2hQ;
+        G.settings.chainValues  = chain;
+        startGame();
+    });
+
+    // Playing
+    on('btnStart',    'click', startTimer);
+    on('btnPause',    'click', pauseTimer);
+    on('btnResume',   'click', startTimer);
+    on('btnEndRound', 'click', () => {
+        if (!G.timerStarted) { toast('Start the round first.'); return; }
+        doEndRound();
+    });
+    on('btnBank',    'click', doBank);
+    on('btnCorrect', 'click', doCorrect);
+    on('btnWrong',   'click', doWrong);
+    on('btnUndo',    'click', doUndo);
+
+    document.querySelectorAll('[data-jump]').forEach(el => {
+        el.addEventListener('click', () => jumpToContestant(+el.dataset.jump));
+    });
+
+    // Round end
+    on('statsToggle',    'click', () => { G.statsExpanded = !G.statsExpanded; render(); });
+    on('btnProceedVote', 'click', () => {
+        G.phase = 'voting';
+        G.pendingVote = null;
+        startVoteTimer();
+        render();
+    });
+
+    // Voting
+    document.querySelectorAll('[data-vote]').forEach(el => {
+        el.addEventListener('click', () => selectVote(el.dataset.vote));
+    });
+    on('btnConfirmElim', 'click', confirmElimination);
+
+    // Eliminated
+    on('btnAfterElim', 'click', afterElimination);
+
+    // H2H
+    on('btnH2HCorrect', 'click', () => h2hAnswer(true));
+    on('btnH2HWrong',   'click', () => h2hAnswer(false));
+
+    // Winner
+    on('btnPlayAgain', 'click', () => {
+        clearInterval(G._interval);
+        clearVoteTimer();
+        G.phase = 'setup';
+        render();
+    });
+}
+
+function on(id, evt, fn) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(evt, fn);
+}
+
+// Boot
+render();
+</script>
+</body>
+</html>
