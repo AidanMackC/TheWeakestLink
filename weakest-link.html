@@ -439,10 +439,39 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════════
+// DISPLAY-WINDOW SYNC
+// Open this file with ?display in the URL to get a read-only
+// display window that mirrors the manage window in real time.
+// Both windows must be loaded from the same local file path.
+// ═══════════════════════════════════════════════════════════
+
+const IS_DISPLAY = new URLSearchParams(window.location.search).has('display');
+const SYNC_KEY   = 'wl-state-v1';
+
+function serializeState() {
+    // Exclude non-serializable timer handles and undo history
+    const { _interval, _voteInterval, actionHistory, ...rest } = G;
+    return JSON.stringify(rest);
+}
+
+function applyRemoteState(json) {
+    try {
+        const data = typeof json === 'string' ? JSON.parse(json) : json;
+        // Preserve local timer handles; overwrite everything else
+        const { _interval, _voteInterval, actionHistory } = G;
+        Object.assign(G, data);
+        G._interval      = _interval;
+        G._voteInterval  = _voteInterval;
+        G.actionHistory  = actionHistory;
+        G.viewMode       = 'display'; // display window is always in display mode
+    } catch(e) { /* ignore stale/corrupt data */ }
+}
+
+// ═══════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════
 
-const DEFAULT_CHAIN = [1000, 2000, 3000, 4000, 5000, 7500, 10000, 25000, 50000];
+const DEFAULT_CHAIN = [0.10, 0.25, 0.40, 0.8, 1.50, 3.00, 5.00, 7.50, 10.00];
 
 let G = {
     phase: 'setup',   // setup | playing | roundEnd | voting | eliminated | h2h | winner
@@ -450,12 +479,14 @@ let G = {
     settings: {
         names: ['Alice', 'Bob', 'Carol', 'David', 'Emily', 'Frank'],
         numPlayers: 6,
-        roundTime: 180,
+        startRoundTime: 180,   // Round 1 time in seconds
+        roundDecrement: 20,    // Seconds removed each subsequent round
         chainValues: [...DEFAULT_CHAIN],
         h2hQuestions: 5,
     },
 
     totalRounds: 0,
+    roundStartTime: 180,  // actual time this round started with (for progress bar)
     round: 0,
     contestants: [],      // [{name, correct, wrong, banked, bankCount}]
     eliminated: [],       // [{name, round, reason}]
@@ -489,13 +520,16 @@ let G = {
 // UTILITIES
 // ═══════════════════════════════════════════════════════════
 
+function play(source) {
+    var audio = new Audio(source);
+    audio.play();
+}
+
 function fmt(n) {
-    if (n === 0) return '£0';
     if (n >= 1_000_000) {
-        const v = n / 1_000_000;
-        return '£' + (v % 1 === 0 ? v : v.toFixed(2)) + 'm';
+        return '£' + (n / 1_000_000).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'm';
     }
-    return '£' + n.toLocaleString('en-GB');
+    return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtTime(s) {
@@ -631,9 +665,12 @@ function startGame() {
 }
 
 function beginRound() {
-    G.chain          = 0;
-    G.roundTotal     = 0;
-    G.timeRemaining  = G.settings.roundTime;
+    G.chain         = 0;
+    G.roundTotal    = 0;
+    const start     = G.settings.startRoundTime ?? 180;
+    const decrement = G.settings.roundDecrement  ?? 20;
+    G.roundStartTime = Math.max(30, start - (G.round - 1) * decrement);
+    G.timeRemaining  = G.roundStartTime;
     G.timerRunning   = false;
     G.timerStarted   = false;
     G.pendingVote    = null;
@@ -681,15 +718,22 @@ function doEndRound() {
 function doBank() {
     const base = chainValue();
     if (base <= 0) { toast('Build the chain first — nothing to bank!'); return; }
-    const val = G.doubleRound ? base * 2 : base;
+    const val        = G.doubleRound ? base * 2 : base;
+    const wasMaxChain = G.chain === G.settings.chainValues.length;
     pushHistory();
     const c = G.contestants[G.curIdx];
-    c.banked    += val;
-    c.bankCount += 1;
+    c.banked     += val;
+    c.bankCount  += 1;
     G.roundTotal += val;
     G.chain = 0;
-    toast(c.name + ' banks ' + fmt(val) + (G.doubleRound ? ' (×2 bonus)!' : '!'));
-    render();
+    if (wasMaxChain) {
+        toast(c.name + ' banks the maximum chain ' + fmt(val) + '! Round over!', 3000);
+        render();
+        setTimeout(doEndRound, 1000);
+    } else {
+        toast(c.name + ' banks ' + fmt(val) + (G.doubleRound ? ' (×2 bonus)!' : '!'));
+        render();
+    }
 }
 
 function doCorrect() {
@@ -854,7 +898,11 @@ function renderChain(double) {
                   next     ? 'next'     + (double ? ' double' : '') : 'inactive';
         const v = vals[i];
         const display = double ? (v * 2) : v;
-        let lbl = display >= 1_000_000 ? (display/1_000_000)+'m' : display >= 1000 ? (display/1000)+'k' : display;
+        let lbl;
+        if      (display >= 1_000_000) lbl = (display/1_000_000).toFixed(1).replace(/\.0$/,'') + 'm';
+        else if (display >= 1000)      lbl = (display/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+        else if (display >= 1)         lbl = display % 1 === 0 ? display : display.toFixed(2).replace(/0$/, '');
+        else                           lbl = Math.round(display * 100) + 'p';
         if (i > 0) {
             html += `<div class="chain-connector ${achieved ? 'achieved' + (double ? ' double' : '') : ''}"></div>`;
         }
@@ -875,7 +923,7 @@ function roundLabel() {
 // ═══════════════════════════════════════════════════════════
 
 function viewToggleBtn() {
-    if (G.phase === 'setup') return '';
+    if (G.phase === 'setup' || IS_DISPLAY) return '';
     const isDisplay = G.viewMode === 'display';
     return `
         <button id="viewToggle" class="${isDisplay ? 'display-active' : ''}"
@@ -909,8 +957,12 @@ function renderSetup() {
                     <select id="numPlayers">${numOptions}</select>
                 </div>
                 <div class="form-group">
-                    <label>Round Time (seconds)</label>
-                    <input type="number" id="roundTime" value="${G.settings.roundTime}" min="10" max="600" step="5">
+                    <label>Round 1 Time (seconds)</label>
+                    <input type="number" id="startRoundTime" value="${G.settings.startRoundTime}" min="30" max="600" step="5">
+                </div>
+                <div class="form-group">
+                    <label>Decrement per Round (seconds)</label>
+                    <input type="number" id="roundDecrement" value="${G.settings.roundDecrement}" min="0" max="60" step="5">
                 </div>
                 <div class="form-group">
                     <label>H2H Questions Per Player</label>
@@ -955,7 +1007,7 @@ function renderPlayingManage() {
     const cval  = G.doubleRound ? base * 2 : base;
     const nbase = nextChainValue();
     const nval  = G.doubleRound && nbase != null ? nbase * 2 : nbase;
-    const total = G.settings.roundTime;
+    const total = G.roundStartTime || 180;
     const pct   = total > 0 ? G.timeRemaining / total : 1;
     const timerCls = pct <= 0.2 ? 'danger' : pct <= 0.4 ? 'warning' : '';
 
@@ -1483,6 +1535,20 @@ function escAttr(s) {
 
 function render() {
     const app = document.getElementById('app');
+
+    // Display-only window waiting for a game to be started in the manage window
+    if (IS_DISPLAY && G.phase === 'setup') {
+        app.innerHTML = `
+            <div class="display-view">
+                ${pageTitle(true)}
+                <div style="color:var(--dim);font-size:0.9em;margin-top:40px;
+                            font-family:Arial,sans-serif;letter-spacing:3px;text-transform:uppercase;">
+                    Waiting for game to begin...
+                </div>
+            </div>`;
+        return;
+    }
+
     switch (G.phase) {
         case 'setup':      app.innerHTML = renderSetup();      break;
         case 'playing':    app.innerHTML = renderPlaying();    break;
@@ -1493,6 +1559,11 @@ function render() {
         case 'winner':     app.innerHTML = renderWinner();     break;
     }
     wire();
+
+    // Broadcast state to any open display windows via localStorage
+    if (!IS_DISPLAY) {
+        try { localStorage.setItem(SYNC_KEY, serializeState()); } catch(e) {}
+    }
 }
 
 function wire() {
@@ -1500,15 +1571,17 @@ function wire() {
     on('numPlayers',   'change', e => changeNumPlayers(+e.target.value));
     on('btnStartGame', 'click',  () => {
         readSetupNames();
-        const rt        = +document.getElementById('roundTime')?.value || 180;
+        const srt       = +document.getElementById('startRoundTime')?.value || 180;
+        const dec       = +document.getElementById('roundDecrement')?.value ?? 20;
         const h2hQ      = +document.getElementById('h2hQ')?.value || 5;
         const rawChain  = document.getElementById('chainVals')?.value || '';
-        const chain     = rawChain.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v) && v > 0);
+        const chain     = rawChain.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v) && v > 0);
         if (chain.length < 1) { alert('Please enter at least one chain value.'); return; }
         if (G.settings.names.filter(n => n.trim()).length < 2) { alert('Please enter at least 2 contestant names.'); return; }
-        G.settings.roundTime    = rt;
-        G.settings.h2hQuestions = h2hQ;
-        G.settings.chainValues  = chain;
+        G.settings.startRoundTime = srt;
+        G.settings.roundDecrement = dec;
+        G.settings.h2hQuestions   = h2hQ;
+        G.settings.chainValues    = chain;
         startGame();
     });
 
@@ -1565,7 +1638,29 @@ function on(id, evt, fn) {
     if (el) el.addEventListener(evt, fn);
 }
 
-// Boot
+// ═══════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════
+
+if (IS_DISPLAY) {
+    // Force display mode and never touch manage controls
+    G.viewMode = 'display';
+
+    // Listen for state changes written by the manage window
+    window.addEventListener('storage', e => {
+        if (e.key === SYNC_KEY && e.newValue) {
+            applyRemoteState(e.newValue);
+            render();
+        }
+    });
+
+    // Load whatever state was last saved (in case manage window is already mid-game)
+    try {
+        const saved = localStorage.getItem(SYNC_KEY);
+        if (saved) applyRemoteState(saved);
+    } catch(e) {}
+}
+
 render();
 </script>
 </body>
