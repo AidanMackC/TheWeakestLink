@@ -25,8 +25,9 @@
         }
 
         body {
-            background-image: url(C:\Users\aidan\Projects\TheWeakestLink.jpg) no-repeat center center fixed;
-            color: var(--text);
+            background-image: url('TheWeakestLink.jpg');
+            background-position: 70% 50%;
+            background-size: cover;
             font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
             min-height: 100vh;
         }
@@ -147,12 +148,12 @@
         .stat { text-align: center; }
         .stat-value { font-size: 1.7em; font-weight: 900; color: var(--gold); line-height: 1.1; }
         .stat-value.sm { font-size: 1.2em; }
-        .stat-label { font-size: 0.68em; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; font-family: Arial, sans-serif; }
+        .stat-label { font-size: 0.68em; color: var(--text); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; font-family: Arial, sans-serif; }
 
         /* ── Timers ── */
         .timer-display {
             font-size: clamp(3em, 10vw, 5.5em);
-            font-family: 'Courier New', monospace;
+            font-family: 'Arial', monospace;
             font-weight: 900;
             text-align: center;
             letter-spacing: 6px;
@@ -165,7 +166,7 @@
 
         .vote-timer {
             font-size: clamp(2em, 6vw, 3.5em);
-            font-family: 'Courier New', monospace;
+            font-family: 'Arial', monospace;
             font-weight: 900;
             text-align: center;
             letter-spacing: 4px;
@@ -226,6 +227,7 @@
         }
         .c-card {
             background: #1c1c1c;
+            color: var(--text);
             border: 2px solid var(--border);
             border-radius: 8px;
             padding: 12px 8px;
@@ -378,7 +380,7 @@
         }
         .display-timer {
             font-size: clamp(5em, 18vw, 10em);
-            font-family: 'Courier New', monospace;
+            font-family: 'Arial', monospace;
             font-weight: 900;
             letter-spacing: 8px;
             color: var(--gold);
@@ -397,7 +399,7 @@
         }
         .display-label {
             font-size: 0.82em;
-            color: var(--dim);
+            color: var(--text);
             text-transform: uppercase;
             letter-spacing: 3px;
             font-family: Arial, sans-serif;
@@ -434,6 +436,21 @@
 
 <div id="app"></div>
 <div id="toast"></div>
+
+<audio id="Intro" src="Audio\Intro.mp3"></audio>
+<audio id="Round1Audio" src="Audio\QuestionBedRound1.mp3"></audio>
+<audio id="Round2Audio" src="Audio\QuestionBedRound2.mp3"></audio>
+<audio id="Round3Audio" src="Audio\QuestionBedRound3.mp3"></audio>
+<audio id="Round4Audio" src="Audio\QuestionBedRound4.mp3"></audio>
+<audio id="Round5Audio" src="Audio\QuestionBedRound5.mp3"></audio>
+<audio id="Round6Audio" src="Audio\QuestionBedRound6.mp3"></audio>
+<audio id="Round7Audio" src="Audio\QuestionBedRound7plus.mp3"></audio>
+<audio id="Voting" src="Audio\Voting Music.mp3"></audio>
+<audio id="HeadToHead" src="Audio\Head to Head.mp3"></audio>
+<audio id="WinnersTheme" src="Audio\Winner's Theme.mp3"></audio>
+<audio id="WinnersSting" src="Audio\Winner's Sting.mp3"></audio>
+<audio id="WalkOfShame" src="Audio\The Walk Of Shame short.mp3"></audio>
+
 
 <script>
 'use strict';
@@ -480,7 +497,7 @@ let G = {
         names: ['Alice', 'Bob', 'Carol', 'David', 'Emily', 'Frank'],
         numPlayers: 6,
         startRoundTime: 180,   // Round 1 time in seconds
-        roundDecrement: 20,    // Seconds removed each subsequent round
+        roundDecrement: 10,    // Seconds removed each subsequent round
         chainValues: [...DEFAULT_CHAIN],
         h2hQuestions: 5,
     },
@@ -519,10 +536,20 @@ let G = {
 // ═══════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════
-
-function play(source) {
-    var audio = new Audio(source);
+function playAudio(track) {
+    var audio = document.getElementById(track);
     audio.play();
+}
+
+function pauseAudio(track) {
+    var audio = document.getElementById(track);
+    audio.pause();
+}
+
+function stopAudio(track){
+    var audio = document.getElementById(track);
+    audio.pause();
+    audio.currentTime = 0;
 }
 
 function fmt(n) {
@@ -600,7 +627,7 @@ function pauseTimer() {
 }
 
 function startVoteTimer() {
-    G.voteTimer = 25;
+    G.voteTimer = 26;
     clearInterval(G._voteInterval);
     G._voteInterval = setInterval(() => {
         G.voteTimer--;
@@ -668,7 +695,7 @@ function beginRound() {
     G.chain         = 0;
     G.roundTotal    = 0;
     const start     = G.settings.startRoundTime ?? 180;
-    const decrement = G.settings.roundDecrement  ?? 20;
+    const decrement = G.settings.roundDecrement  ?? 10;
     G.roundStartTime = Math.max(30, start - (G.round - 1) * decrement);
     G.timeRemaining  = G.roundStartTime;
     G.timerRunning   = false;
@@ -709,6 +736,9 @@ function onTimeUp() {
 }
 
 function doEndRound() {
+    var audio = document.getElementById('Round' + G.round + 'Audio');
+    audio.pause();
+    audio.currentTime = 0;    
     clearInterval(G._interval);
     G._interval = null;
     G.timerRunning = false;
@@ -720,6 +750,7 @@ function doBank() {
     if (base <= 0) { toast('Build the chain first — nothing to bank!'); return; }
     const val        = G.doubleRound ? base * 2 : base;
     const wasMaxChain = G.chain === G.settings.chainValues.length;
+    const MaxChainValue = G.settings.chainValues[G.settings.chainValues.length - 1] ?? 0;
     pushHistory();
     const c = G.contestants[G.curIdx];
     c.banked     += val;
@@ -730,7 +761,32 @@ function doBank() {
         toast(c.name + ' banks the maximum chain ' + fmt(val) + '! Round over!', 3000);
         render();
         setTimeout(doEndRound, 1000);
-    } else {
+        playAudio('WinnersSting');
+    } 
+    else if (G.doubleRound) {
+        if (G.roundTotal < MaxChainValue * 2) {
+            toast(c.name + ' banks ' + fmt(val) + ' (×2 bonus)!');
+            render();
+            return;
+        }
+        else {
+        toast(c.name + ' banks ' + fmt(val) + ' and pushes the round total over ' + fmt(MaxChainValue * 2) + ' in this DOUBLE ROUND! Round over!', 3000);
+        G.roundTotal = MaxChainValue * 2;
+        render();
+        setTimeout(doEndRound, 1000);
+        playAudio('WinnersSting');
+        }
+
+    }
+    else if (G.roundTotal >= MaxChainValue) {
+        console.log('Code got here instead');        
+        toast(c.name + ' banks ' + fmt(val) + ' and pushes the round total over ' + fmt(MaxChainValue) + '! Round over!', 3000);
+        G.roundTotal = MaxChainValue;
+        render();
+        setTimeout(doEndRound, 1000);
+        playAudio('WinnersSting');
+    } 
+    else {
         toast(c.name + ' banks ' + fmt(val) + (G.doubleRound ? ' (×2 bonus)!' : '!'));
         render();
     }
@@ -807,6 +863,7 @@ function startH2H() {
     G.h2h = { scores: [0, 0], answered: [0, 0], curPlayer: 0, sudden: false };
     G.phase = 'h2h';
     render();
+    setTimeout(() => playAudio('HeadToHead'), 5000);
 }
 
 function h2hAnswer(correct) {
@@ -850,6 +907,8 @@ function eliminateH2H(loserIdx) {
     G.eliminated.push({ name: loser.name, round: G.round, reason: 'h2h' });
     G.contestants = [winner];
     G.phase = 'winner';
+    stopAudio('HeadToHead');
+    playAudio('WinnersTheme');
     render();
 }
 
@@ -1005,6 +1064,7 @@ function renderPlayingManage() {
     const cur   = G.contestants[G.curIdx];
     const base  = chainValue();
     const cval  = G.doubleRound ? base * 2 : base;
+    const doublebankmax = 20;
     const nbase = nextChainValue();
     const nval  = G.doubleRound && nbase != null ? nbase * 2 : nbase;
     const total = G.roundStartTime || 180;
@@ -1102,7 +1162,7 @@ function renderPlayingDisplay() {
     const cur    = G.contestants[G.curIdx];
     const base   = chainValue();
     const cval   = G.doubleRound ? base * 2 : base;
-    const total  = G.settings.roundTime;
+    const total  = G.roundStartTime || 180;
     const pct    = total > 0 ? G.timeRemaining / total : 1;
     const timerCls = pct <= 0.2 ? 'danger' : pct <= 0.4 ? 'warning' : '';
 
@@ -1206,7 +1266,7 @@ function renderRoundEndManage() {
                             const rate  = total > 0 ? Math.round(c.correct/total*100)+'%' : '—';
                             const rowCls = i===0 ? 'row-strong' : i===sorted.length-1&&sorted.length>1 ? 'row-weak' : '';
                             return `
-                            <tr class="${rowCls}">
+                            <tr class="${rowCls}" style="color:var(--text);">
                                 <td><strong>${escHtml(c.name)}</strong>
                                     ${i===0?' <span class="badge badge-gold">Strongest</span>':''}
                                     ${i===sorted.length-1&&sorted.length>1?' <span class="badge badge-red">Weakest</span>':''}
@@ -1308,7 +1368,7 @@ function renderVotingDisplay() {
             <div class="vote-timer ${G.voteTimer===0?'expired':''}" style="margin-bottom:24px;">${G.voteTimer}s</div>
             <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:600px;">
                 ${G.contestants.map(c => `
-                    <div style="background:#1c1c1c;border:2px solid var(--border);border-radius:8px;padding:16px 24px;font-size:1.1em;font-weight:900;text-transform:uppercase;letter-spacing:2px;">
+                    <div style="background:#1c1c1c;color:var(--text);border:2px solid var(--border);border-radius:8px;padding:16px 24px;font-size:1.1em;font-weight:900;text-transform:uppercase;letter-spacing:2px;">
                         ${escHtml(c.name)}
                     </div>
                 `).join('')}
@@ -1541,7 +1601,7 @@ function render() {
         app.innerHTML = `
             <div class="display-view">
                 ${pageTitle(true)}
-                <div style="color:var(--dim);font-size:0.9em;margin-top:40px;
+                <div style="color:var(--text);font-size:0.9em;margin-top:40px;
                             font-family:Arial,sans-serif;letter-spacing:3px;text-transform:uppercase;">
                     Waiting for game to begin...
                 </div>
@@ -1572,7 +1632,7 @@ function wire() {
     on('btnStartGame', 'click',  () => {
         readSetupNames();
         const srt       = +document.getElementById('startRoundTime')?.value || 180;
-        const dec       = +document.getElementById('roundDecrement')?.value ?? 20;
+        const dec       = +document.getElementById('roundDecrement')?.value ?? 10;
         const h2hQ      = +document.getElementById('h2hQ')?.value || 5;
         const rawChain  = document.getElementById('chainVals')?.value || '';
         const chain     = rawChain.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v) && v > 0);
@@ -1582,13 +1642,29 @@ function wire() {
         G.settings.roundDecrement = dec;
         G.settings.h2hQuestions   = h2hQ;
         G.settings.chainValues    = chain;
+        playAudio('Intro');
         startGame();
     });
 
     // Playing
-    on('btnStart',    'click', startTimer);
-    on('btnPause',    'click', pauseTimer);
-    on('btnResume',   'click', startTimer);
+    on('btnStart',    'click', () => {
+        let round = G.round.toString();
+        startTimer();
+        if (G.round < 7) {
+            setTimeout(() => playAudio('Round' + round + 'Audio'), 1000);
+        }
+        else {
+            setTimeout(() => playAudio('Round7Audio'), 1000);
+        }
+    });
+    on('btnPause',    'click', () => {
+        pauseTimer();
+        pauseAudio('Round' + G.round + 'Audio');
+    });
+    on('btnResume',   'click', () => {
+        startTimer();
+        playAudio('Round' + G.round + 'Audio');
+    });
     on('btnEndRound', 'click', () => {
         if (!G.timerStarted) { toast('Start the round first.'); return; }
         doEndRound();
@@ -1608,6 +1684,7 @@ function wire() {
         G.phase = 'voting';
         G.pendingVote = null;
         startVoteTimer();
+        playAudio('Voting');
         render();
     });
 
@@ -1615,8 +1692,12 @@ function wire() {
     document.querySelectorAll('[data-vote]').forEach(el => {
         el.addEventListener('click', () => selectVote(el.dataset.vote));
     });
-    on('btnConfirmElim', 'click', confirmElimination);
-
+    on('btnConfirmElim', 'click', () => {
+        stopAudio('Voting');
+        playAudio('WalkOfShame');
+        confirmElimination();
+    })
+        
     // Eliminated
     on('btnAfterElim', 'click', afterElimination);
 
