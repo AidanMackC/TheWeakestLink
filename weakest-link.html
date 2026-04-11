@@ -311,12 +311,13 @@
         .h2h-split { display: flex; gap: 16px; margin-bottom: 16px; }
         .h2h-player {
             flex: 1; text-align: center; padding: 20px 12px;
+            color: var(--text);
             background: #1c1c1c; border: 2px solid var(--border); border-radius: 8px;
             transition: border-color 0.2s, background 0.2s;
         }
         .h2h-player.active { border-color: var(--gold); background: #1d1500; }
         .h2h-score { font-size: 4em; color: var(--gold); font-weight: 900; line-height: 1; margin: 8px 0; }
-        .h2h-name  { font-size: 1em; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
+        .h2h-name  { font-size: 1em; color: var(--text); text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
         .h2h-answered { font-size: 0.7em; color: var(--dim); font-family: Arial, sans-serif; margin-top: 6px; }
 
         .sd-badge {
@@ -391,6 +392,7 @@
         .display-timer.danger  { color: var(--red); animation: blink 0.6s infinite alternate; }
         .display-name {
             font-size: clamp(2em, 7vw, 4em);
+            color: var(--text);
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 5px;
@@ -801,6 +803,10 @@ function doCorrect() {
     render();
 }
 
+function doH2HAudio(){
+    playAudio('HeadToHead');
+}
+
 function doWrong() {
     pushHistory();
     const c = G.contestants[G.curIdx];
@@ -860,10 +866,9 @@ function startH2H() {
     const si = G.startIdx % G.contestants.length;
     if (si === 1) G.contestants.reverse();
     G.contestants = G.contestants.map(c => ({ ...c, correct: 0, wrong: 0, banked: 0, bankCount: 0 }));
-    G.h2h = { scores: [0, 0], answered: [0, 0], curPlayer: 0, sudden: false };
+    G.h2h = { scores: [0, 0], answered: [0, 0], curPlayer: 0, sudden: false, suddenPending: null };
     G.phase = 'h2h';
     render();
-    setTimeout(() => playAudio('HeadToHead'), 5000);
 }
 
 function h2hAnswer(correct) {
@@ -875,14 +880,35 @@ function h2hAnswer(correct) {
     G.h2h.answered[p]++;
 
     if (G.h2h.sudden) {
-        if (!correct) { eliminateH2H(p); return; }
-        G.h2h.curPlayer = 1 - p;
-        render();
+        if (G.h2h.suddenPending === null) {
+            // First player of this sudden death exchange has answered — wait for the other
+            G.h2h.suddenPending = correct;
+            G.h2h.curPlayer = 1 - p;
+            render();
+        } else {
+            // Second player has now answered — compare the two results
+            const firstCorrect = G.h2h.suddenPending;
+            G.h2h.suddenPending = null;
+            if (firstCorrect === correct) {
+                // Both right or both wrong — no winner yet, swap back and continue
+                G.h2h.curPlayer = 1 - p;
+                render();
+            } else {
+                // Different results — eliminate whoever got it wrong
+                eliminateH2H(firstCorrect ? p : 1 - p);
+            }
+        }
         return;
     }
 
     const done0 = G.h2h.answered[0] >= qpp;
     const done1 = G.h2h.answered[1] >= qpp;
+
+    // Early finish: check if the trailing player can no longer mathematically win
+    const rem0 = qpp - G.h2h.answered[0];
+    const rem1 = qpp - G.h2h.answered[1];
+    if (G.h2h.scores[0] > G.h2h.scores[1] + rem1) { eliminateH2H(1); return; }
+    if (G.h2h.scores[1] > G.h2h.scores[0] + rem0) { eliminateH2H(0); return; }
 
     if (done0 && done1) {
         if (G.h2h.scores[0] > G.h2h.scores[1])      eliminateH2H(1);
@@ -890,6 +916,7 @@ function h2hAnswer(correct) {
         else {
             G.h2h.sudden = true;
             G.h2h.curPlayer = 0;
+            G.h2h.suddenPending = null;
             toast('SUDDEN DEATH!', 3000);
             render();
         }
@@ -1442,6 +1469,10 @@ function renderH2HManage() {
             </div>
         </div>
 
+        <div class="card" style="text-align:center;border-color:var(--gold-dim);">
+            <button class="btn btn-gold btn-lg btn-full mt-20" id="btnStartH2H">▶ Start Head to Head</button>
+        </div>
+
         ${h.sudden ? '<div class="text-center mb-14"><span class="sd-badge">⚡ Sudden Death</span></div>' : ''}
 
         ${!h.sudden ? `
@@ -1489,7 +1520,7 @@ function renderH2HDisplay() {
     return `
         <div class="display-view">
             ${pageTitle(true)}
-            <div style="font-size:0.76em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:24px;">Head to Head Final</div>
+            <div style="font-size:0.76em;color:var(--text);text-transform:uppercase;letter-spacing:3px;margin-bottom:24px;">Head to Head Final</div>
             ${h.sudden ? '<span class="sd-badge" style="margin-bottom:20px;">⚡ Sudden Death</span>' : ''}
             <div class="h2h-split" style="width:min(460px,90vw);">
                 <div class="h2h-player ${h.curPlayer===0?'active':''}">
@@ -1673,6 +1704,7 @@ function wire() {
     on('btnCorrect', 'click', doCorrect);
     on('btnWrong',   'click', doWrong);
     on('btnUndo',    'click', doUndo);
+    on('btnStartH2H', 'click', doH2HAudio); //Not sure why but calling playAudio directly here causes it to play when clicking any button
 
     document.querySelectorAll('[data-jump]').forEach(el => {
         el.addEventListener('click', () => jumpToContestant(+el.dataset.jump));
@@ -1709,6 +1741,7 @@ function wire() {
     on('btnPlayAgain', 'click', () => {
         clearInterval(G._interval);
         clearVoteTimer();
+        stopAudio('WinnersTheme');
         G.phase = 'setup';
         render();
     });
