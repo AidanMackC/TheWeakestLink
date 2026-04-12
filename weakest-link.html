@@ -780,8 +780,7 @@ function doBank() {
         }
 
     }
-    else if (G.roundTotal >= MaxChainValue) {
-        console.log('Code got here instead');        
+    else if (G.roundTotal >= MaxChainValue) {     
         toast(c.name + ' banks ' + fmt(val) + ' and pushes the round total over ' + fmt(MaxChainValue) + '! Round over!', 3000);
         G.roundTotal = MaxChainValue;
         render();
