@@ -183,7 +183,113 @@
         .progress-fill.warning { background: var(--gold2); }
         .progress-fill.danger  { background: var(--red); }
 
-        /* ── Chain ── */
+        /* ── Chain (vertical – display view) ── */
+        .display-layout {
+            display: flex;
+            align-items: stretch;
+            min-height: 80vh;
+            width: 100%;
+        }
+        .display-chain-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 20px;
+            background: rgba(0,0,0,0.2);
+            min-width: 200px;
+        }
+        .display-main-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px 24px;
+        }
+        .chain-wrap-v {
+            position: relative;
+            width: 190px;
+            margin: 0 auto;
+        }
+        .chain-node-v {
+            width: 160px; height: 44px;
+            border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1em;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, #1c3a7a 0%, #0d1f4d 100%);
+            color: #7aadea;
+            border: 1px solid #2a508a;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+        }
+        .chain-node-v.top-value {
+            width: 180px; height: 52px;
+            border-radius: 26px;
+            font-size: 1.1em;
+        }
+        .chain-node-v.bank-node {
+            width: 180px;
+            border-radius: 26px;
+            background: linear-gradient(180deg, #5a5a5a 0%, #282828 100%);
+            color: #c0c0c0;
+            border: 1px solid #545454;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+            flex-direction: column;
+            height: auto; padding: 6px 14px;
+            font-size: 0.88em;
+            line-height: 1.25;
+            gap: 1px;
+        }
+        .chain-node-v.current {
+            background: linear-gradient(180deg, #e83a1a 0%, #7a0e00 100%);
+            color: #fff;
+            border: 1px solid #ff5533;
+            box-shadow: 0 0 22px rgba(220,40,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+        /* Top of the achieved stack — fully visible, small gap from current */
+        .chain-node-v.achieved.stack-top {
+            background: linear-gradient(180deg, #3a8aff 0%, #1a44cc 100%);
+            color: #fff;
+            border: 1px solid #5aa4ff;
+            box-shadow: 0 0 10px rgba(42,100,255,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+        /* Remaining achieved nodes — heavily overlapped, only a sliver peeks out */
+        .chain-node-v.achieved.stack-rest {
+            background: linear-gradient(180deg, #3a8aff 0%, #1a44cc 100%);
+            color: #fff;
+            border: 1px solid #5aa4ff;
+            box-shadow: 0 0 10px rgba(42,100,255,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+        .chain-node-v.current.double {
+            background: linear-gradient(180deg, #a03aff 0%, #5500bb 100%);
+            border: 1px solid #c060ff;
+            box-shadow: 0 0 22px rgba(153,51,255,0.7), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+        .chain-node-v.achieved.double {
+            background: linear-gradient(180deg, #8a3aff 0%, #4400aa 100%);
+            border: 1px solid #aa66ff;
+            box-shadow: 0 0 10px rgba(153,51,255,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .chain-connector-v {
+            width: 3px; height: 10px;
+            background: #333;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .bank-label {
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            color: #999;
+        }
+
+        /* ── Chain (horizontal – manage view) ── */
         .chain-wrap {
             display: flex;
             align-items: center;
@@ -997,6 +1103,93 @@ function renderChain(double) {
     return html;
 }
 
+function renderChainVertical(double) {
+    const vals = G.settings.chainValues;
+    const N = vals.length;
+
+    // Fixed pixel heights for each element type
+    const TOP_H  = 52;   // .top-value node
+    const NODE_H = 44;   // regular node
+    const CONN_H = 10;   // connector
+    const BANK_H = 50;   // bank node (approximate, container uses min-height)
+
+    // Natural top position of render-order index k (k=0 = highest value)
+    function naturalTop(k) {
+        return k === 0 ? 0 : TOP_H + CONN_H + (k - 1) * (NODE_H + CONN_H);
+    }
+    function nodeHeight(k) { return k === 0 ? TOP_H : NODE_H; }
+
+    const bankConnTop = naturalTop(N - 1) + nodeHeight(N - 1);
+    const bankTop     = bankConnTop + CONN_H;
+    const totalH      = bankTop + BANK_H;
+
+    // Current node render index (k=0 is highest; -1 if all achieved)
+    const currentK = G.chain < N ? N - G.chain - 1 : -1;
+
+    // Achieved nodes stack just above the bank node, pile growing upward.
+    // stackIdx=0 is the highest achieved (top of pile), stackIdx=N_a-1 is lowest (nearest bank).
+    const N_a = Math.min(G.chain, N);
+    const pileBottom = bankTop - 6 - NODE_H; // bottom node of pile sits here
+    function stackedTop(stackIdx) {
+        return pileBottom - (N_a - 1 - stackIdx) * 8;
+    }
+
+    let html = `<div class="chain-wrap-v" style="min-height:${totalH}px;">`;
+
+    let achievedCount = 0;
+    let prevAchieved  = false;
+
+    // Render top-to-bottom: k=0 is highest value
+    for (let k = 0; k < N; k++) {
+        const i   = N - 1 - k;
+        const pos = i + 1;
+        const achieved  = pos <= G.chain;
+        const isCurrent = pos === G.chain + 1;
+
+        const v       = vals[i];
+        const display = double ? v * 2 : v;
+        let lbl;
+        if      (display >= 1_000_000) lbl = '£' + (display/1_000_000).toFixed(1).replace(/\.0$/,'') + 'm';
+        else if (display >= 1000)      lbl = '£' + (display/1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        else if (display >= 1)         lbl = '£' + (display % 1 === 0 ? display : display.toFixed(2).replace(/0$/, ''));
+        else                           lbl = Math.round(display * 100) + 'p';
+
+        let cls = 'chain-node-v';
+        if (k === 0) cls += ' top-value';
+        if (achieved) {
+            cls += achievedCount === 0 ? ' achieved stack-top' : ' achieved stack-rest';
+            if (double) cls += ' double';
+        } else if (isCurrent) {
+            cls += ' current' + (double ? ' double' : '');
+        }
+
+        // Connector above this node — only between two consecutive non-achieved nodes
+        if (k > 0 && !achieved && !prevAchieved) {
+            const ct = naturalTop(k - 1) + nodeHeight(k - 1);
+            html += `<div class="chain-connector-v" style="position:absolute;top:${ct}px;left:50%;transform:translateX(-50%);"></div>`;
+        }
+
+        let topPx = achieved ? stackedTop(achievedCount) : naturalTop(k);
+        let zVal  = achieved ? pos : 0;
+        if (achieved) achievedCount++;
+
+        html += `<div class="${cls}" style="top:${topPx}px;${zVal ? 'z-index:' + zVal + ';' : ''}" title="${fmt(display)}">${lbl}</div>`;
+        prevAchieved = achieved;
+    }
+
+    // Connector to bank only when the bottom node is not achieved
+    if (!prevAchieved) {
+        html += `<div class="chain-connector-v" style="position:absolute;top:${bankConnTop}px;left:50%;transform:translateX(-50%);"></div>`;
+    }
+
+    // Bank node — anchored at the natural bottom position regardless of stacking
+    const bankAmount = G.roundTotal > 0 ? fmt(G.roundTotal) : '£0';
+    html += `<div class="chain-node-v bank-node" style="top:${bankTop}px;"><span>${bankAmount}</span><span class="bank-label">BANK</span></div>`;
+
+    html += '</div>';
+    return html;
+}
+
 function roundLabel() {
     if (G.doubleRound) return `Penultimate Round (Round ${G.round} of ${G.totalRounds})`;
     if (G.phase === 'h2h') return `Head to Head (Round ${G.round} of ${G.totalRounds})`;
@@ -1193,35 +1386,39 @@ function renderPlayingDisplay() {
     const timerCls = pct <= 0.2 ? 'danger' : pct <= 0.4 ? 'warning' : '';
 
     return `
-        <div class="display-view">
-            ${pageTitle(true)}
-            <div style="font-size:0.76em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">${roundLabel()}</div>
-
-            <div class="display-timer ${timerCls}">${fmtTime(G.timeRemaining)}</div>
-            <div class="progress-bar" style="width:min(400px,90vw);margin:12px auto;">
-                <div class="progress-fill ${timerCls}" style="width:${pct*100}%"></div>
+        <div class="display-layout">
+            <!-- Left column: vertical chain -->
+            <div class="display-chain-col">
+                ${renderChainVertical(G.doubleRound)}
             </div>
 
-            <div style="margin:24px 0 8px;">
-                ${renderChain(G.doubleRound)}
-            </div>
+            <!-- Right column: main content -->
+            <div class="display-main-col">
+                ${pageTitle(true)}
+                <div style="font-size:0.76em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">${roundLabel()}</div>
 
-            <div class="display-label" style="margin-bottom:6px;">Now Answering</div>
-            <div class="display-name">${cur ? escHtml(cur.name) : '—'}</div>
-
-            ${cval > 0 ? `
-            <div class="display-label" style="margin-top:20px;margin-bottom:4px;">Chain Value</div>
-            <div style="font-size:clamp(1.8em,5vw,3em);font-weight:900;color:${G.doubleRound?'var(--purple)':'var(--gold)'};">${fmt(cval)}</div>
-            ` : ''}
-
-            <div style="display:flex;gap:40px;margin-top:24px;flex-wrap:wrap;justify-content:center;">
-                <div class="stat">
-                    <div class="stat-value" style="font-size:1.4em;">${fmt(G.roundTotal)}</div>
-                    <div class="stat-label">Round Banked</div>
+                <div class="display-timer ${timerCls}">${fmtTime(G.timeRemaining)}</div>
+                <div class="progress-bar" style="width:min(400px,90vw);margin:12px auto;">
+                    <div class="progress-fill ${timerCls}" style="width:${pct*100}%"></div>
                 </div>
-                <div class="stat">
-                    <div class="display-money" style="font-size:1.4em;">${fmt(G.gameTotal)}</div>
-                    <div class="stat-label">Prize Fund</div>
+
+                <div class="display-label" style="margin-top:28px;margin-bottom:6px;">Now Answering</div>
+                <div class="display-name">${cur ? escHtml(cur.name) : '—'}</div>
+
+                ${cval > 0 ? `
+                <div class="display-label" style="margin-top:20px;margin-bottom:4px;">Chain Value</div>
+                <div style="font-size:clamp(1.8em,5vw,3em);font-weight:900;color:${G.doubleRound?'var(--purple)':'var(--gold)'};">${fmt(cval)}</div>
+                ` : ''}
+
+                <div style="display:flex;gap:40px;margin-top:24px;flex-wrap:wrap;justify-content:center;">
+                    <div class="stat">
+                        <div class="stat-value" style="font-size:1.4em;">${fmt(G.roundTotal)}</div>
+                        <div class="stat-label">Round Banked</div>
+                    </div>
+                    <div class="stat">
+                        <div class="display-money" style="font-size:1.4em;">${fmt(G.gameTotal)}</div>
+                        <div class="stat-label">Prize Fund</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1417,7 +1614,7 @@ function renderEliminated() {
     else                nextLabel = `▶ Begin Round ${G.round + 1} of ${G.totalRounds}`;
 
     return `
-        <div class="drama-screen">
+        <div class="display-view">
             <div style="font-size:0.76em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">
                 Round ${G.round} — Eliminated
             </div>
@@ -1567,7 +1764,7 @@ function renderWinner() {
                     </div>
                 `).join('')}
                 <div class="log-row" style="border-top:1px solid var(--gold-dim);margin-top:4px;">
-                    <strong>Total Prize</strong>
+                    <strong style="color:var(--text);">Total Prize</strong>
                     <strong class="text-gold">${fmt(G.gameTotal)}</strong>
                     <span></span>
                 </div>
