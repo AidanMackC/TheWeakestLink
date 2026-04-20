@@ -404,14 +404,14 @@
         /* ── Dramatic screens ── */
         .drama-screen { text-align: center; padding: 30px 16px; }
         .drama-name {
-            font-size: clamp(2em, 7vw, 3.8em);
+            font-size: clamp(2em, 9vw, 9em);
             letter-spacing: 4px;
             text-transform: uppercase;
             margin: 18px 0 10px;
         }
         .drama-name.red  { color: var(--red);  text-shadow: 0 0 40px rgba(204,34,0,0.5); }
         .drama-name.gold { color: var(--gold); text-shadow: 0 0 40px rgba(255,215,0,0.5); }
-        .drama-sub { font-size: 1em; color: var(--dim); letter-spacing: 3px; text-transform: uppercase; font-style: italic; margin-bottom: 24px; }
+        .drama-sub { font-size: 3.5em; color: var(--dim); letter-spacing: 3px; text-transform: uppercase; font-style: italic; margin-bottom: 24px; }
 
         /* ── H2H ── */
         .h2h-split { display: flex; gap: 16px; margin-bottom: 16px; }
@@ -425,6 +425,69 @@
         .h2h-score { font-size: 4em; color: var(--gold); font-weight: 900; line-height: 1; margin: 8px 0; }
         .h2h-name  { font-size: 1em; color: var(--text); text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
         .h2h-answered { font-size: 0.7em; color: var(--dim); font-family: Arial, sans-serif; margin-top: 6px; }
+
+        /* ── H2H Shootout (display view) ── */
+        .h2h-shootout {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            width: min(880px, 96vw);
+            margin: 0 auto 40px;
+        }
+        .h2h-shootout-row {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            background: #141414;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 24px 32px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .h2h-shootout-row.active {
+            border-color: var(--gold);
+            background: #1d1500;
+        }
+        .h2h-sname {
+            font-size: 2em;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text);
+            min-width: 200px;
+            flex-shrink: 0;
+        }
+        .h2h-pills {
+            display: flex;
+            gap: 14px;
+        }
+        .h2h-pill {
+            width: 90px; height: 58px;
+            border-radius: 29px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6em;
+            font-weight: 900;
+            background: #253040;
+            color: var(--dim);
+            border: 1px solid #354555;
+            flex-shrink: 0;
+        }
+        .h2h-pill.current { color: #fff; }
+        .h2h-pill.correct {
+            background: linear-gradient(180deg, #e83a1a 0%, #7a0e00 100%);
+            border-color: #ff5533;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(220,40,0,0.5);
+        }
+        .h2h-pill.incorrect { color: #fff; }
+        .h2h-pill-divider {
+            width: 2px;
+            align-self: stretch;
+            background: var(--border);
+            border-radius: 1px;
+            margin: 0 4px;
+            flex-shrink: 0;
+        }
 
         .sd-badge {
             display: inline-block;
@@ -971,7 +1034,7 @@ function startH2H() {
     const si = G.startIdx % G.contestants.length;
     if (si === 1) G.contestants.reverse();
     G.contestants = G.contestants.map(c => ({ ...c, correct: 0, wrong: 0, banked: 0, bankCount: 0 }));
-    G.h2h = { scores: [0, 0], answered: [0, 0], curPlayer: 0, sudden: false, suddenPending: null };
+    G.h2h = { scores: [0, 0], answered: [0, 0], curPlayer: 0, sudden: false, suddenPending: null, results: [[], []] };
     G.phase = 'h2h';
     render();
 }
@@ -983,6 +1046,7 @@ function h2hAnswer(correct) {
     if (correct) { G.h2h.scores[p]++; G.contestants[p].correct++; }
     else { G.contestants[p].wrong++; }
     G.h2h.answered[p]++;
+    G.h2h.results[p].push(correct);
 
     if (G.h2h.sudden) {
         if (G.h2h.suddenPending === null) {
@@ -1709,26 +1773,63 @@ function renderH2HManage() {
 }
 
 function renderH2HDisplay() {
-    const h  = G.h2h;
-    const p0 = G.contestants[0];
-    const p1 = G.contestants[1];
+    const h   = G.h2h;
+    const qpp = G.settings.h2hQuestions;
+    const res0 = (h.results || [[], []])[0];
+    const res1 = (h.results || [[], []])[1];
+
+    // During SD, a new exchange is "pending" when both players have answered equal questions —
+    // meaning the next SD pill hasn't been filled yet and needs to be shown.
+    const sdExchangePending = h.sudden && res0.length === res1.length;
+    const maxRes   = Math.max(res0.length, res1.length);
+    const totalPills = Math.max(qpp, maxRes + (sdExchangePending ? 1 : 0));
+
+    function shootoutRow(p) {
+        const res      = p === 0 ? res0 : res1;
+        const isActive = h.curPlayer === p;
+
+        let regularPills = '';
+        let sdPills = '';
+
+        for (let q = 1; q <= totalPills; q++) {
+            const answered   = res.length >= q;
+            const isCurrent  = !answered && isActive && res.length === q - 1;
+            const wasCorrect = answered && res[q - 1] === true;
+            const wasWrong   = answered && res[q - 1] === false;
+
+            let cls   = 'h2h-pill';
+            let label = q;
+            if (wasCorrect)     { cls += ' correct';   label = '✓'; }
+            else if (wasWrong)  { cls += ' incorrect'; label = '✗'; }
+            else if (isCurrent) { cls += ' current'; }
+
+            const pill = `<div class="${cls}">${label}</div>`;
+            if (q <= qpp) regularPills += pill;
+            else          sdPills      += pill;
+        }
+
+        const sdSection = sdPills
+            ? `<div class="h2h-pill-divider"></div><div class="h2h-pills">${sdPills}</div>`
+            : '';
+
+        return `
+            <div class="h2h-shootout-row${isActive ? ' active' : ''}">
+                <div class="h2h-sname">${escHtml(G.contestants[p].name)}</div>
+                <div class="h2h-pills">${regularPills}</div>
+                ${sdSection}
+            </div>`;
+    }
 
     return `
         <div class="display-view">
             ${pageTitle(true)}
             <div style="font-size:0.76em;color:var(--text);text-transform:uppercase;letter-spacing:3px;margin-bottom:24px;">Head to Head Final</div>
             ${h.sudden ? '<span class="sd-badge" style="margin-bottom:20px;">⚡ Sudden Death</span>' : ''}
-            <div class="h2h-split" style="width:min(460px,90vw);">
-                <div class="h2h-player ${h.curPlayer===0?'active':''}">
-                    <div class="h2h-name">${escHtml(p0.name)}</div>
-                    <div class="h2h-score">${h.scores[0]}</div>
-                </div>
-                <div class="h2h-player ${h.curPlayer===1?'active':''}">
-                    <div class="h2h-name">${escHtml(p1.name)}</div>
-                    <div class="h2h-score">${h.scores[1]}</div>
-                </div>
+            <div class="h2h-shootout">
+                ${shootoutRow(0)}
+                ${shootoutRow(1)}
             </div>
-            <div class="display-label" style="margin-top:16px;">Now Answering</div>
+            <div class="display-label">Now Answering</div>
             <div class="display-name">${escHtml(G.contestants[h.curPlayer].name)}</div>
             <div class="stat" style="margin-top:24px;">
                 <div class="display-money">${fmt(G.gameTotal)}</div>
@@ -1750,9 +1851,9 @@ function renderWinner() {
             ${pageTitle()}
             <div style="margin:10px 0 4px;font-size:0.82em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;">The Strongest Link</div>
             <div class="drama-name gold">${winner ? escHtml(winner.name) : 'Winner'}</div>
-            <div class="drama-sub">You are the strongest link!</div>
-            <div style="font-size:0.8em;color:var(--dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Prize Fund</div>
-            <div style="font-size:2.8em;font-weight:900;color:var(--green);margin-bottom:30px;text-shadow:0 0 20px rgba(0,187,85,0.4);">${fmt(G.gameTotal)}</div>
+            <div class="drama-sub"  style="color:var(--gold);">You are the strongest link!</div>
+            <div style="font-size:1.5em;color:var(--text);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Prize Fund</div>
+            <div style="font-size:7em;font-weight:900;color:var(--green);margin-bottom:30px;text-shadow:0 0 20px rgba(0,187,85,0.4);">${fmt(G.gameTotal)}</div>
             <hr class="divider">
             <div class="card" style="text-align:left;max-width:420px;margin:0 auto 24px;">
                 <h2 style="margin-bottom:14px;">Game Summary</h2>
