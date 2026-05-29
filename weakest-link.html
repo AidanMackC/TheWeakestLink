@@ -697,6 +697,7 @@ let G = {
     _voteInterval: null,
 
     statsExpanded: false, // collapse state for round-end stats section
+    editingPrizeFund: false,
 
     roundHistory: [],     // [{round, banked, eliminated, penultimate}]
     pendingVote: null,
@@ -873,8 +874,9 @@ function beginRound() {
     G.timerStarted   = false;
     G.pendingVote    = null;
     G.actionHistory  = [];
-    G.statsExpanded  = false;
-    G.curIdx         = G.startIdx % G.contestants.length;
+    G.statsExpanded      = false;
+    G.editingPrizeFund   = false;
+    G.curIdx             = G.startIdx % G.contestants.length;
 
     // Penultimate round: exactly 2 contestants remain, banking is doubled
     G.doubleRound = G.contestants.length === 2;
@@ -1526,9 +1528,26 @@ function renderRoundEndManage() {
         <div class="card" style="text-align:center;border-color:var(--gold-dim);">
             <div style="font-size:1em;color:var(--dim);text-transform:uppercase;letter-spacing:3px;margin-bottom:8px;">Time's Up — Round ${G.round} of ${G.totalRounds}</div>
             <hr class="divider">
-            <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;">
+            <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;align-items:flex-end;">
                 <div class="stat"><div class="stat-value">${fmt(G.roundTotal)}</div><div class="stat-label">Banked This Round</div></div>
-                <div class="stat"><div class="stat-value">${fmt(G.gameTotal)}</div><div class="stat-label">Total Prize Fund</div></div>
+                <div class="stat">
+                    ${G.editingPrizeFund ? `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                        <input type="number" id="prizeFundEdit" value="${G.gameTotal}" min="0" step="0.01"
+                               style="width:140px;text-align:center;font-size:1em;padding:7px 10px;">
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-green btn-sm" id="btnConfirmPrizeFund">✓ Confirm</button>
+                            <button class="btn btn-grey btn-sm" id="btnCancelPrizeFund">✗ Cancel</button>
+                        </div>
+                    </div>
+                    ` : `
+                    <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+                        <div class="stat-value">${fmt(G.gameTotal)}</div>
+                        <button class="btn btn-dark btn-sm" id="btnEditPrizeFund" title="Edit prize fund" style="padding:5px 9px;font-size:0.78em;">✎</button>
+                    </div>
+                    `}
+                    <div class="stat-label" style="margin-top:4px;">Total Prize Fund</div>
+                </div>
             </div>
         </div>
 
@@ -2026,6 +2045,22 @@ function wire() {
 
     // Round end
     on('statsToggle',    'click', () => { G.statsExpanded = !G.statsExpanded; render(); });
+    on('btnEditPrizeFund', 'click', () => { G.editingPrizeFund = true; render(); });
+    on('btnConfirmPrizeFund', 'click', () => {
+        const el = document.getElementById('prizeFundEdit');
+        if (el) {
+            const val = parseFloat(el.value);
+            if (!isNaN(val) && val >= 0) {
+                G.gameTotal = val;
+                toast('Prize fund updated to ' + fmt(val));
+            } else {
+                toast('Invalid amount — prize fund unchanged.');
+            }
+        }
+        G.editingPrizeFund = false;
+        render();
+    });
+    on('btnCancelPrizeFund', 'click', () => { G.editingPrizeFund = false; render(); });
     on('btnProceedVote', 'click', () => {
         G.phase = 'voting';
         G.pendingVote = null;
